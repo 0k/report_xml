@@ -7,7 +7,7 @@
             <field name="type">form</field>
             <field name="arch" type="xml">
                 <xpath expr="/form/notebook/page[@string='Security']" position="before" >
-                    <page string="Webkit" attrs="{'invisible':[('report_type','!=','xml')]}">
+                    <page string="Xml" attrs="{'invisible':[('report_type','!=','xml')]}">
                         <field name="xml_debug"/>
                     </page>
                 </xpath>
