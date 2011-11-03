@@ -147,7 +147,7 @@ class Obj2Xml():
             value = self.obj2xml(value, deep=deep - 1, cache=cache)
             G = getattr(E, key)
 
-            attr = dict((k, str(v))
+            attr = dict((k, unicode(v))
                         for k, v in field_def.iteritems()
                         if k in self._attr_keep_fields) ## XXXvlab: what should I do of the states ?
 	    #attr["name"] = key
