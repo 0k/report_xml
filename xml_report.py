@@ -125,8 +125,7 @@ class Obj2Xml():
             if class_name == 'browse_null':
                 return "" ## element is removed
 
-            print "NotImplemented raised ! on OE-OBJECT: %r (type: %r)" % (obj, type(obj))
-            raise NotImplementedError
+            raise NotImplementedError("This oe-object is unknown: %r (type: %r)" % (obj, type(obj)))
 
         attrs.update({
             "table": obj._table_name,
@@ -169,8 +168,7 @@ class Obj2Xml():
         if obj.__class__.__module__.startswith('osv'):
             return self._xml_oe_object(obj, deep, cache)
 
-        print "NotImplemented raised ! on %r (type: %r)" % (obj, type(obj))
-        raise NotImplementedError
+        raise NotImplementedError("Dump not implemented for %r (type: %r)" % (obj, type(obj)))
 
 
 class XmlParser(report_webkit.webkit_report.WebKitParser):
