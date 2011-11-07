@@ -165,7 +165,12 @@ class Obj2Xml():
             if isinstance(obj, types):
                 return getattr(self, fn_name, types)(obj, deep, cache)
 
-        if obj.__class__.__module__.startswith('osv'):
+        ## XXXvlab: yuk ! I would have appreciated to have a common ancestor to
+        ## osv object...
+
+        module_name = obj.__class__.__module__
+        if (module_name.startswith('osv')               ## openerp 6.0.3
+            or module_name.startswith('openerp.osv')):  ## openerp 6.1
             return self._xml_oe_object(obj, deep, cache)
 
         raise NotImplementedError("Dump not implemented for %r (type: %r)" % (obj, type(obj)))
