@@ -25,6 +25,13 @@ from lxml.builder import E
 ## XXXvlab: Translation ?
 
 
+## XXXvlab: yuk ! I would have appreciated to have a common ancestor to
+## osv object...
+def is_of_browser_interface(obj):
+    module_name = obj.__class__.__module__
+    return (module_name.startswith('osv')              ## openerp 6.0.3
+            or module_name.startswith('openerp.osv'))  ## openerp 6.1
+
 class Obj2Xml():
 
     _attr_keep_fields = ["domain", "relation", "type", "help", "name", "string"]
@@ -165,15 +172,77 @@ class Obj2Xml():
             if isinstance(obj, types):
                 return getattr(self, fn_name, types)(obj, deep, cache)
 
-        ## XXXvlab: yuk ! I would have appreciated to have a common ancestor to
-        ## osv object...
-
-        module_name = obj.__class__.__module__
-        if (module_name.startswith('osv')               ## openerp 6.0.3
-            or module_name.startswith('openerp.osv')):  ## openerp 6.1
+        if is_of_browser_interface(obj):
             return self._xml_oe_object(obj, deep, cache)
 
         raise NotImplementedError("Dump not implemented for %r (type: %r)" % (obj, type(obj)))
+
+
+class Bunch(dict):
+    def __init__(self, d):
+        b = dict((k, Bunch(v) if isinstance(v, dict) else v)
+                 for k, v in d.iteritems())
+        dict.__init__(self, b)
+        self.__dict__.update(b)
+
+
+## Simple wrapper for browser object
+class MakoParsable(object):
+
+    NULL = {}
+
+    def __init__(self, browser):
+        self._browser = browser
+        fields_def = {}
+        if hasattr(browser, "_table") and \
+               browser._table is not None: ## browse_null class will by pass this
+            fields_def = browser._table.fields_get(
+                browser._cr, browser._uid, None, browser._context)
+        self._fields = Bunch(fields_def)
+
+    def __getitem__(self, label):
+
+        if label not in self._fields and \
+           ("%s_id" % label) in self._fields:
+            return self["%s_id"]
+
+        return self._browser.__getitem__(label)
+
+    def __getattr__(self, label):
+
+        if label not in self._fields and \
+           ("%s_id" % label) in self._fields:
+            return getattr(self, "%s_id" % label)
+
+        val = getattr(self._browser, label)
+
+        if is_of_browser_interface(val):
+            class_name = val.__class__.__name__
+            if hasattr(val, "_table") or \
+               class_name == 'browse_null':
+                return MakoParsable(val)
+            if class_name == 'browse_record_list':
+                return [MakoParsable(v) for v in val]
+
+        return val
+
+
+def mako_template(text):
+    """Build a Mako template.
+
+    This template uses UTF-8 encoding
+    """
+    # default_filters=['unicode', 'h'] can be used to set global filters
+    return Template(text, input_encoding='utf-8', output_encoding='utf-8')
+
+def xml2string(content):
+    """Render a ElementTree to a string with some default options
+
+    """
+    return ET.tostring(content,
+                       pretty_print=True,
+                       xml_declaration=True,
+                       encoding="utf-8")
 
 
 class XmlParser(report_webkit.webkit_report.WebKitParser):
@@ -192,9 +261,39 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         ## should return the raw data of a pdf
         return None
 
+    def _create_full_dump_xml(self, cr, uid, ids, data, report_xml, context=None):
+        model = self.table
+        pool = pooler.get_pool(cr.dbname)
+        table_obj = pooler.get_pool(cr.dbname).get(model)
+        objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
+        toXml = Obj2Xml(cr=cr, uid=uid, context=context)
+
+        xml_output = toXml.report(objs, deep=6)
+
+        return (xml2string(xml_output), 'xml')
+
+    def _create_mako_xml(self, cr, uid, ids, data, report_xml, context=None):
+        tpl = mako_template(report_xml.xml_template)
+
+        model = self.table
+        pool = pooler.get_pool(cr.dbname)
+        table_obj = pooler.get_pool(cr.dbname).get(model)
+        objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
+
+        content = ""
+        for obj in objs:
+            obj = MakoParsable(obj) #, cr, uid, None, context)
+            fields = obj._table.fields_get(cr, uid, None, context)
+            content += tpl.render(fields=fields, obj=obj)
+
+        xml = E.data(ET.fromstring(content))
+
+        return (xml2string(xml), 'xml')
+
     # override needed to keep the attachments' storing procedure
     def create_single_pdf(self, cr, uid, ids, data, report_xml, context=None):
-        """generate the PDF"""
+        """Override of inherited function to divert it and generate the XML
+        instead of PDF if report_type is 'xml'."""
 
         if context is None:
             context={}
@@ -202,19 +301,21 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         if report_xml.report_type != 'xml':
             return super(XmlParser,self).create_single_pdf(cr, uid, ids, data, report_xml, context=context)
 
-        model = self.table
-        pool = pooler.get_pool(cr.dbname)
-        table_obj = pooler.get_pool(cr.dbname).get(model)
-        objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
-        toXml = Obj2Xml(cr=cr, uid=uid, context=context)
+        return self.create_single_xml(cr, uid, ids, data, report_xml, context)
 
-        xml_output = ET.tostring(toXml.report(objs, deep=6),
-                                 pretty_print=True,
-                                 xml_declaration=True,
-                                 encoding="utf-8")
+    def create_single_xml(self, cr, uid, ids, data, report_xml, context=None):
+        """generate the XML"""
 
-        return (xml_output, 'xml')
+        if context is None:
+            context={}
 
+        if report_xml.report_type != 'xml':
+            return super(XmlParser,self).create_single_pdf(cr, uid, ids, data, report_xml, context=context)
+
+        if report_xml.xml_full_dump:
+            return self._create_full_dump_xml(cr, uid, ids, data, report_xml, context)
+
+        return self._create_mako_xml(cr, uid, ids, data, report_xml, context)
 
     def create(self, cursor, uid, ids, data, context=None):
         """We override the create function in order to handle generator

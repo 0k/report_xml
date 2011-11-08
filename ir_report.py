@@ -92,6 +92,9 @@ class ReportXML(osv.osv):
     _inherit = 'ir.actions.report.xml'
     _columns = {
         'xml_debug' : fields.boolean('reportXML debug', help="Enable the xml report engine debugger"),
+        'xml_full_dump' : fields.boolean('Full dump', help="Enable the full dump of the current object."),
+        'xml_full_dump_deepness' : fields.integer('Full dump deepness', help="Deepness of the full dump."),
+        'xml_template' : fields.text('XML Template', help="Mako XML Template."),
     }
 
 ReportXML()
