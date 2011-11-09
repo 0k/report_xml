@@ -65,8 +65,9 @@ class Obj2Xml():
         meta.tag = "meta"
         return meta
 
-    def report(self, objs, deep):
+    def report(self, objs, max_deep):
 
+        self.max_deep = max_deep
         ## Structure:
         ## dump @model
         ##    meta
@@ -76,11 +77,13 @@ class Obj2Xml():
 
         context = self.context2xml()
         #meta = self.meta2xml()
-        xmlobjs = [self.obj2xml(obj, deep=deep) for obj in objs]
+        cache = {}
+        xmlobjs = [self.obj2xml(obj, deep=0, cache=cache) for obj in objs]
         return E.report(
             #meta,
             context,
-            E.data(*xmlobjs),
+            E.requested(*xmlobjs),
+            E.data(*cache.values()),
         )
 
     def get_fields_def(self, obj):
@@ -138,8 +141,8 @@ class Obj2Xml():
             raise NotImplementedError("This oe-object is unknown: %r (type: %r)" % (obj, type(obj)))
 
         attrs = {
-            "table": obj._table_name,
             "id": str(obj._id),
+            "min-deep": str(deep),
             }
 
         F = getattr(E, obj._table_name)
@@ -147,9 +150,10 @@ class Obj2Xml():
         # Using repr as id...
         cached_value = cache.get(str(obj), None)
         if cached_value is not None:
-            return F(cropped="ALREADY_DEFINED", **attrs)
+            cached_value.attrib['min-deep'] = str(min(deep, int(cached_value.attrib['min-deep'])))
+            return F(**attrs)
 
-        if deep == 0:
+        if deep == self.max_deep:
             return F(cropped="MAX_DEEPNESS_REACHED", **attrs)
 
         res = cache[str(obj)] = F(**attrs)
@@ -158,7 +162,7 @@ class Obj2Xml():
             if not self.KEEP_FALSE_VALUE and field_def['type'] != "boolean" and raw_value is False:
                 continue
 
-            value = self.obj2xml(raw_value, deep=deep - 1, cache=cache)
+            value = self.obj2xml(raw_value, deep=deep + 1, cache=cache)
             if value is None:
                 continue
 
@@ -209,16 +213,14 @@ class Obj2Xml():
                         c.append(child)
                     c.remove(c[0])
 
-
             res.append(elt)
         ## XXXvlab: obj or the type itself ?
         ## XXXvlab: what attribute ?
+        return F(**attrs)
 
-        return res
-
-    def obj2xml(self, obj, deep=3, cache=None):
-
-        cache = cache or {}
+    def obj2xml(self, obj, deep=0, cache=None):
+        
+        cache = {} if cache is None else cache
 
         for types, fn_name in self._dump_dispatcher:
             if isinstance(obj, types):
@@ -320,7 +322,7 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
         toXml = Obj2Xml(cr=cr, uid=uid, context=context)
 
-        xml_output = toXml.report(objs, deep=3)
+        xml_output = toXml.report(objs, max_deep=3)
 
         return (xml2string(xml_output), 'xml')
 
