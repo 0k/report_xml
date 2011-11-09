@@ -42,6 +42,8 @@ class Obj2Xml():
                         (bool, "_xml_bool"),
                         ((int, basestring, float), "_xml_str")
                         ]
+    KEEP_FALSE_VALUE = False
+
 
     def __init__(self, **kwargs):
         self.meta = {}
@@ -149,6 +151,8 @@ class Obj2Xml():
         res = cache[str(obj)] = F(**attrs)
         for key, field_def in self.get_fields_def(obj).iteritems():
             value = getattr(obj, key)
+            if not self.KEEP_FALSE_VALUE and field_def['type'] != "boolean" and value is False:
+                continue
             value = self.obj2xml(value, deep=deep - 1, cache=cache)
             G = getattr(E, key)
 
