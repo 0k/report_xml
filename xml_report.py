@@ -81,8 +81,7 @@ class Obj2Xml():
         )
 
     def get_fields_def(self, obj):
-        t = obj._table
-        return t.fields_get(self.cr, self.uid, None, self.context)
+        return obj._table.fields_get(self.cr, self.uid, None, self.context)
 
     def _xml_dict(self, obj, deep, cache):
         elts = []
