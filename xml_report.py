@@ -18,12 +18,13 @@ import tools
 from tools.translate import _
 from osv.osv import except_osv
 
-
+from copy import deepcopy
 from lxml import etree as ET
 from lxml.builder import E
 
 ## XXXvlab: Translation ?
 
+ElementClass = type(E.dummy())
 
 ## XXXvlab: yuk ! I would have appreciated to have a common ancestor to
 ## osv object...
@@ -34,7 +35,7 @@ def is_of_browser_interface(obj):
 
 class Obj2Xml():
 
-    _attr_keep_fields = ["domain", "relation", "type", "help", "name", "string"]
+    _attr_keep_fields = ["relation", "type", "help", "name", "string"]
 
     _dump_dispatcher = [(dict, "_xml_dict"),
                         ((list, tuple), "_xml_list"),
@@ -94,7 +95,7 @@ class Obj2Xml():
                 continue ## ignore bad field.
             elts.append(getattr(E, k)(xml))
         if len(elts) == 0:
-            return ""
+            return None
         return E.dict(*elts)
 
     def _xml_list(self, obj, deep, cache):
@@ -106,7 +107,7 @@ class Obj2Xml():
                 continue ## ignore bad field.
             elts.append(E.li(xml))
         if len(elts) == 0:
-            return ""
+            return None
         return E.ul(*elts)
 
     def _xml_str(self, obj, deep, cache):
@@ -120,25 +121,28 @@ class Obj2Xml():
 
     def _xml_oe_object(self, obj, deep, cache):
 
-        F = getattr(E, "oe-object")
-        attrs = {
-            "type": obj.__class__.__name__,
-        }
-
         if not hasattr(obj, '_table') or obj._table is None:
+            F = getattr(E, "oe-object")
+            attrs = {
+                "type": obj.__class__.__name__,
+                }
+
             class_name = obj.__class__.__name__
             if class_name == 'browse_record_list':
+                assert False
                 return F(*(self.obj2xml(o, deep=deep, cache=cache)
                            for i,o in enumerate(obj)))
             if class_name == 'browse_null':
-                return "" ## element is removed
+                return None ## element is removed
 
             raise NotImplementedError("This oe-object is unknown: %r (type: %r)" % (obj, type(obj)))
 
-        attrs.update({
+        attrs = {
             "table": obj._table_name,
             "id": str(obj._id),
-            })
+            }
+
+        F = getattr(E, obj._table_name)
 
         # Using repr as id...
         cached_value = cache.get(str(obj), None)
@@ -150,18 +154,63 @@ class Obj2Xml():
 
         res = cache[str(obj)] = F(**attrs)
         for key, field_def in self.get_fields_def(obj).iteritems():
-            value = getattr(obj, key)
-            if not self.KEEP_FALSE_VALUE and field_def['type'] != "boolean" and value is False:
+            raw_value = getattr(obj, key)
+            if not self.KEEP_FALSE_VALUE and field_def['type'] != "boolean" and raw_value is False:
                 continue
-            value = self.obj2xml(value, deep=deep - 1, cache=cache)
+
+            value = self.obj2xml(raw_value, deep=deep - 1, cache=cache)
+            if value is None:
+                continue
+
             G = getattr(E, key)
 
             attr = dict((k, unicode(v))
                         for k, v in field_def.iteritems()
                         if k in self._attr_keep_fields) ## XXXvlab: what should I do of the states ?
-	    #attr["name"] = key
 
-            res.append(G(value, **attr))
+
+            if not isinstance(value, ElementClass):
+                elt = G(value, **attr)
+                res.append(elt)
+                continue
+
+            if hasattr(raw_value, "_table") and raw_value._table is not None:
+                attr["table"] = raw_value._table_name
+
+            elt = G(**attr)
+            elt.text = value.text
+            elt.attrib.update(dict(value.attrib))
+
+            for child in value.getchildren():
+                elt.append(child)
+
+            if field_def['type'] == "many2one":
+                if key.endswith("_id"):
+                    elt.tag = elt.tag[:-3]
+                del elt.attrib['relation']
+            if field_def['type'] in ["one2many", "many2many"]:
+                if key.endswith("_ids"):
+                    elt.tag = elt.tag[:-4]
+                elif key.endswith("_id"):
+                    elt.tag = elt.tag[:-3]
+
+                if elt.tag.endswith("ss"):
+                    sub = elt.tag
+                    elt.tag = elt.tag + "es"
+                else:
+                    if not elt.tag.endswith("s"):
+                        elt.tag = elt.tag + "s"
+                    sub = elt.tag[:-1]
+
+                for c in elt:
+                    c.tag = "%s" % sub
+                    c.attrib.update(dict(c[0].attrib))
+                    for child in c[0].getchildren():
+                        c.append(child)
+                    c.remove(c[0])
+
+
+            res.append(elt)
         ## XXXvlab: obj or the type itself ?
         ## XXXvlab: what attribute ?
 
@@ -271,7 +320,7 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
         toXml = Obj2Xml(cr=cr, uid=uid, context=context)
 
-        xml_output = toXml.report(objs, deep=6)
+        xml_output = toXml.report(objs, deep=3)
 
         return (xml2string(xml_output), 'xml')
 
