@@ -142,7 +142,7 @@ class Obj2Xml():
 
         # Using repr as id...
         cached_value = cache.get(str(obj), None)
-        if cached_value:
+        if cached_value is not None:
             return F(cropped="ALREADY_DEFINED", **attrs)
 
         if deep == 0:
