@@ -208,6 +208,7 @@ class Obj2Xml():
 
                 for c in elt:
                     c.tag = "%s" % sub
+                    c.attrib['table'] = elt.attrib['relation']
                     c.attrib.update(dict(c[0].attrib))
                     for child in c[0].getchildren():
                         c.append(child)
