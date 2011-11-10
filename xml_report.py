@@ -319,7 +319,7 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
     def _create_full_dump_xml(self, cr, uid, ids, data, report_xml, context=None):
         model = self.table
         pool = pooler.get_pool(cr.dbname)
-        table_obj = pooler.get_pool(cr.dbname).get(model)
+        table_obj = pool.get(model)
         objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
         toXml = Obj2Xml(cr=cr, uid=uid, context=context)
 
@@ -332,7 +332,7 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
 
         model = self.table
         pool = pooler.get_pool(cr.dbname)
-        table_obj = pooler.get_pool(cr.dbname).get(model)
+        table_obj = pooler.pool.get(model)
         objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
 
         content = ""
