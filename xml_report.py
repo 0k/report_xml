@@ -82,7 +82,7 @@ class Obj2Xml():
         return E.report(
             #meta,
             context,
-            E.requested(*xmlobjs),
+            E.requests(*[E.request(table=c.tag, **c.attrib) for c in xmlobjs]),
             E.data(*cache.values()),
         )
 
