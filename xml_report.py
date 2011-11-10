@@ -55,9 +55,28 @@ class Obj2Xml():
         self.context = kwargs['context']
         self.cr = kwargs['cr']
 
-    def context2xml(self):
-        context = self.obj2xml(self.context)
+    def context2xml(self, cache):
+        c = self.context.copy()
+
+        ## Removing any active_* keys, as they are active_id(s) and active_model
+        ## already in the <requests> element.
+        for k in c.keys():
+            if k.startswith("active_"):
+                del c[k]
+
+        ## Adding user in context
+        pool = pooler.get_pool(self.cr.dbname)
+        table_obj = pool.get("res.users")
+        objs = table_obj.browse(self.cr, self.uid, [self.uid],
+                                list_class=None, context=self.context,
+                                fields_process=None)
+        xmlobj = self.obj2xml(objs[0], deep=2, cache=cache)
+
+        user = E.user(table="res.users", **xmlobj.attrib)
+
+        context = self.obj2xml(c)
         context.tag = "context"
+        context.append(user)
         return context
 
     def meta2xml(self):
@@ -75,10 +94,11 @@ class Obj2Xml():
         ##    element @model @id
         ##       attr @oe-type (@relation)
 
-        context = self.context2xml()
-        #meta = self.meta2xml()
         cache = {}
+        context = self.context2xml(cache=cache)
+        #meta = self.meta2xml()
         xmlobjs = [self.obj2xml(obj, deep=0, cache=cache) for obj in objs]
+
         return E.report(
             #meta,
             context,
