@@ -18,11 +18,21 @@ import tools
 from tools.translate import _
 from osv.osv import except_osv
 
-
+from copy import deepcopy
 from lxml import etree as ET
 from lxml.builder import E
 
+
+##
+## TODO:
+##
+## - clean Obj2Xml oe-object xml making process. (remove all rewriting of elements ?)
+##
+##
+
 ## XXXvlab: Translation ?
+
+ElementClass = type(E.dummy())
 
 
 ## XXXvlab: yuk ! I would have appreciated to have a common ancestor to
@@ -32,9 +42,15 @@ def is_of_browser_interface(obj):
     return (module_name.startswith('osv')              ## openerp 6.0.3
             or module_name.startswith('openerp.osv'))  ## openerp 6.1
 
-class Obj2Xml():
 
-    _attr_keep_fields = ["domain", "relation", "type", "help", "name", "string"]
+class Obj2Xml():
+    """Generic python object to XML converter
+
+    Specificities upon openerp objects where added.
+
+    """
+
+    _attr_keep_fields = ["relation", "type", "help", "name", "string"]
 
     _dump_dispatcher = [(dict, "_xml_dict"),
                         ((list, tuple), "_xml_list"),
@@ -42,6 +58,8 @@ class Obj2Xml():
                         (bool, "_xml_bool"),
                         ((int, basestring, float), "_xml_str")
                         ]
+    KEEP_FALSE_VALUE = False
+
 
     def __init__(self, **kwargs):
         self.meta = {}
@@ -52,9 +70,28 @@ class Obj2Xml():
         self.context = kwargs['context']
         self.cr = kwargs['cr']
 
-    def context2xml(self):
-        context = self.obj2xml(self.context)
+    def context2xml(self, cache):
+        c = self.context.copy()
+
+        ## Removing any active_* keys, as they are active_id(s) and active_model
+        ## already in the <requests> element.
+        for k in c.keys():
+            if k.startswith("active_"):
+                del c[k]
+
+        ## Adding user in context
+        pool = pooler.get_pool(self.cr.dbname)
+        table_obj = pool.get("res.users")
+        objs = table_obj.browse(self.cr, self.uid, [self.uid],
+                                list_class=None, context=self.context,
+                                fields_process=None)
+        xmlobj = self.obj2xml(objs[0], deep=2, cache=cache)
+
+        user = E.user(table="res.users", **xmlobj.attrib)
+
+        context = self.obj2xml(c)
         context.tag = "context"
+        context.append(user)
         return context
 
     def meta2xml(self):
@@ -62,8 +99,9 @@ class Obj2Xml():
         meta.tag = "meta"
         return meta
 
-    def report(self, objs, deep):
+    def report(self, objs, max_deep):
 
+        self.max_deep = max_deep
         ## Structure:
         ## dump @model
         ##    meta
@@ -71,18 +109,20 @@ class Obj2Xml():
         ##    element @model @id
         ##       attr @oe-type (@relation)
 
-        context = self.context2xml()
+        cache = {}
+        context = self.context2xml(cache=cache)
         #meta = self.meta2xml()
-        xmlobjs = [self.obj2xml(obj, deep=deep) for obj in objs]
+        xmlobjs = [self.obj2xml(obj, deep=0, cache=cache) for obj in objs]
+
         return E.report(
             #meta,
             context,
-            E.data(*xmlobjs),
+            E.requests(*[E.request(table=c.tag, **c.attrib) for c in xmlobjs]),
+            E.data(*cache.values()),
         )
 
     def get_fields_def(self, obj):
-        t = obj._table
-        return t.fields_get(self.cr, self.uid, None, self.context)
+        return obj._table.fields_get(self.cr, self.uid, None, self.context)
 
     def _xml_dict(self, obj, deep, cache):
         elts = []
@@ -93,7 +133,7 @@ class Obj2Xml():
                 continue ## ignore bad field.
             elts.append(getattr(E, k)(xml))
         if len(elts) == 0:
-            return ""
+            return None
         return E.dict(*elts)
 
     def _xml_list(self, obj, deep, cache):
@@ -105,7 +145,7 @@ class Obj2Xml():
                 continue ## ignore bad field.
             elts.append(E.li(xml))
         if len(elts) == 0:
-            return ""
+            return None
         return E.ul(*elts)
 
     def _xml_str(self, obj, deep, cache):
@@ -119,54 +159,106 @@ class Obj2Xml():
 
     def _xml_oe_object(self, obj, deep, cache):
 
-        F = getattr(E, "oe-object")
-        attrs = {
-            "type": obj.__class__.__name__,
-        }
-
         if not hasattr(obj, '_table') or obj._table is None:
+            F = getattr(E, "oe-object")
+            attrs = {
+                "type": obj.__class__.__name__,
+                }
+
             class_name = obj.__class__.__name__
             if class_name == 'browse_record_list':
+                assert False
                 return F(*(self.obj2xml(o, deep=deep, cache=cache)
-                           for i,o in enumerate(obj)))
+                           for i, o in enumerate(obj)))
             if class_name == 'browse_null':
-                return "" ## element is removed
+                return None ## element is removed
 
-            raise NotImplementedError("This oe-object is unknown: %r (type: %r)" % (obj, type(obj)))
+            raise NotImplementedError("This oe-object is unknown: %r (type: %r)"
+                                      % (obj, type(obj)))
 
-        attrs.update({
-            "table": obj._table_name,
+        attrs = {
             "id": str(obj._id),
-            })
+            "min-deep": str(deep),
+            }
+
+        F = getattr(E, obj._table_name)
 
         # Using repr as id...
         cached_value = cache.get(str(obj), None)
-        if cached_value:
-            return F(cropped="ALREADY_DEFINED", **attrs)
+        if cached_value is not None:
+            cached_value.attrib['min-deep'] = str(
+                min(deep, int(cached_value.attrib['min-deep'])))
+            return F(**attrs)
 
-        if deep == 0:
+        if deep == self.max_deep:
             return F(cropped="MAX_DEEPNESS_REACHED", **attrs)
 
         res = cache[str(obj)] = F(**attrs)
         for key, field_def in self.get_fields_def(obj).iteritems():
-            value = getattr(obj, key)
-            value = self.obj2xml(value, deep=deep - 1, cache=cache)
+            raw_value = getattr(obj, key)
+            if not self.KEEP_FALSE_VALUE and \
+                   field_def['type'] != "boolean" and \
+                   raw_value is False:
+                continue
+
+            value = self.obj2xml(raw_value, deep=deep + 1, cache=cache)
+            if value is None:
+                continue
+
             G = getattr(E, key)
 
             attr = dict((k, unicode(v))
                         for k, v in field_def.iteritems()
                         if k in self._attr_keep_fields) ## XXXvlab: what should I do of the states ?
-	    #attr["name"] = key
 
-            res.append(G(value, **attr))
-        ## XXXvlab: obj or the type itself ?
-        ## XXXvlab: what attribute ?
+            if not isinstance(value, ElementClass):
+                elt = G(value, **attr)
+                res.append(elt)
+                continue
 
-        return res
+            if hasattr(raw_value, "_table") and raw_value._table is not None:
+                attr["table"] = raw_value._table_name
 
-    def obj2xml(self, obj, deep=3, cache=None):
+            elt = G(**attr)
+            elt.text = value.text
+            elt.attrib.update(dict(value.attrib))
 
-        cache = cache or {}
+            for child in value.getchildren():
+                elt.append(child)
+
+            if field_def['type'] == "many2one":
+                if key.endswith("_id"):
+                    elt.tag = elt.tag[:-3]
+                del elt.attrib['relation']
+            if field_def['type'] in ["one2many", "many2many"]:
+                if key.endswith("_ids"):
+                    elt.tag = elt.tag[:-4]
+                elif key.endswith("_id"):
+                    elt.tag = elt.tag[:-3]
+
+                if elt.tag.endswith("ss"):
+                    sub = elt.tag
+                    elt.tag = elt.tag + "es"
+                else:
+                    if not elt.tag.endswith("s"):
+                        elt.tag = elt.tag + "s"
+                    sub = elt.tag[:-1]
+
+                for c in elt:
+                    c.tag = "%s" % sub
+                    c.attrib['table'] = elt.attrib['relation']
+                    c.attrib.update(dict(c[0].attrib))
+                    for child in c[0].getchildren():
+                        c.append(child)
+                    c.remove(c[0])
+
+            res.append(elt)
+
+        return F(**attrs)
+
+    def obj2xml(self, obj, deep=0, cache=None):
+
+        cache = {} if cache is None else cache
 
         for types, fn_name in self._dump_dispatcher:
             if isinstance(obj, types):
@@ -175,7 +267,8 @@ class Obj2Xml():
         if is_of_browser_interface(obj):
             return self._xml_oe_object(obj, deep, cache)
 
-        raise NotImplementedError("Dump not implemented for %r (type: %r)" % (obj, type(obj)))
+        raise NotImplementedError("Dump not implemented for %r (type: %r)"
+                                  % (obj, type(obj)))
 
 
 class Bunch(dict):
@@ -264,11 +357,11 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
     def _create_full_dump_xml(self, cr, uid, ids, data, report_xml, context=None):
         model = self.table
         pool = pooler.get_pool(cr.dbname)
-        table_obj = pooler.get_pool(cr.dbname).get(model)
+        table_obj = pool.get(model)
         objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
         toXml = Obj2Xml(cr=cr, uid=uid, context=context)
 
-        xml_output = toXml.report(objs, deep=6)
+        xml_output = toXml.report(objs, max_deep=3)
 
         return (xml2string(xml_output), 'xml')
 
@@ -277,7 +370,7 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
 
         model = self.table
         pool = pooler.get_pool(cr.dbname)
-        table_obj = pooler.get_pool(cr.dbname).get(model)
+        table_obj = pooler.pool.get(model)
         objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
 
         content = ""
