@@ -22,9 +22,18 @@ from copy import deepcopy
 from lxml import etree as ET
 from lxml.builder import E
 
+
+##
+## TODO:
+##
+## - clean Obj2Xml oe-object xml making process. (remove all rewriting of elements ?)
+##
+##
+
 ## XXXvlab: Translation ?
 
 ElementClass = type(E.dummy())
+
 
 ## XXXvlab: yuk ! I would have appreciated to have a common ancestor to
 ## osv object...
@@ -33,7 +42,13 @@ def is_of_browser_interface(obj):
     return (module_name.startswith('osv')              ## openerp 6.0.3
             or module_name.startswith('openerp.osv'))  ## openerp 6.1
 
+
 class Obj2Xml():
+    """Generic python object to XML converter
+
+    Specificities upon openerp objects where added.
+
+    """
 
     _attr_keep_fields = ["relation", "type", "help", "name", "string"]
 
@@ -154,11 +169,12 @@ class Obj2Xml():
             if class_name == 'browse_record_list':
                 assert False
                 return F(*(self.obj2xml(o, deep=deep, cache=cache)
-                           for i,o in enumerate(obj)))
+                           for i, o in enumerate(obj)))
             if class_name == 'browse_null':
                 return None ## element is removed
 
-            raise NotImplementedError("This oe-object is unknown: %r (type: %r)" % (obj, type(obj)))
+            raise NotImplementedError("This oe-object is unknown: %r (type: %r)"
+                                      % (obj, type(obj)))
 
         attrs = {
             "id": str(obj._id),
@@ -170,7 +186,8 @@ class Obj2Xml():
         # Using repr as id...
         cached_value = cache.get(str(obj), None)
         if cached_value is not None:
-            cached_value.attrib['min-deep'] = str(min(deep, int(cached_value.attrib['min-deep'])))
+            cached_value.attrib['min-deep'] = str(
+                min(deep, int(cached_value.attrib['min-deep'])))
             return F(**attrs)
 
         if deep == self.max_deep:
@@ -179,7 +196,9 @@ class Obj2Xml():
         res = cache[str(obj)] = F(**attrs)
         for key, field_def in self.get_fields_def(obj).iteritems():
             raw_value = getattr(obj, key)
-            if not self.KEEP_FALSE_VALUE and field_def['type'] != "boolean" and raw_value is False:
+            if not self.KEEP_FALSE_VALUE and \
+                   field_def['type'] != "boolean" and \
+                   raw_value is False:
                 continue
 
             value = self.obj2xml(raw_value, deep=deep + 1, cache=cache)
@@ -191,7 +210,6 @@ class Obj2Xml():
             attr = dict((k, unicode(v))
                         for k, v in field_def.iteritems()
                         if k in self._attr_keep_fields) ## XXXvlab: what should I do of the states ?
-
 
             if not isinstance(value, ElementClass):
                 elt = G(value, **attr)
@@ -235,12 +253,11 @@ class Obj2Xml():
                     c.remove(c[0])
 
             res.append(elt)
-        ## XXXvlab: obj or the type itself ?
-        ## XXXvlab: what attribute ?
+
         return F(**attrs)
 
     def obj2xml(self, obj, deep=0, cache=None):
-        
+
         cache = {} if cache is None else cache
 
         for types, fn_name in self._dump_dispatcher:
@@ -250,7 +267,8 @@ class Obj2Xml():
         if is_of_browser_interface(obj):
             return self._xml_oe_object(obj, deep, cache)
 
-        raise NotImplementedError("Dump not implemented for %r (type: %r)" % (obj, type(obj)))
+        raise NotImplementedError("Dump not implemented for %r (type: %r)"
+                                  % (obj, type(obj)))
 
 
 class Bunch(dict):
