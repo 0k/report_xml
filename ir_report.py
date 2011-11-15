@@ -94,6 +94,7 @@ class ReportXML(osv.osv):
         'xml_debug' : fields.boolean('reportXML debug', help="Enable the xml report engine debugger"),
         'xml_full_dump' : fields.boolean('Full dump', help="Enable the full dump of the current object."),
         'xml_full_dump_deepness' : fields.integer('Full dump deepness', help="Deepness of the full dump."),
+        'xml_full_dump_additional_data' : fields.text('Additional data', help="Data to be included in the XML full dump."),
         'xml_template' : fields.text('XML Template', help="Mako XML Template."),
     }
 

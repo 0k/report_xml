@@ -10,8 +10,10 @@
                     <page string="Xml" attrs="{'invisible':[('report_type','!=','xml')]}">
                         <field name="xml_debug" />
                         <field name="xml_full_dump"/>
-                        <field name="xml_full_dump_deepness"
-                               attrs="{'invisible':[('xml_full_dump','!=',True)]}" />
+                        <group colspan="4" col="2" attrs="{'invisible':[('xml_full_dump','!=',True)]}">
+                          <field name="xml_full_dump_deepness" />
+                          <field name="xml_full_dump_additional_data" />
+                        </group>
                         <field name="xml_template"
                                attrs="{'invisible':[('xml_full_dump','==',True)]}"
                                />

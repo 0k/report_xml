@@ -94,12 +94,7 @@ class Obj2Xml():
         context.append(user)
         return context
 
-    def meta2xml(self):
-        meta = self.obj2xml(self.meta)
-        meta.tag = "meta"
-        return meta
-
-    def report(self, objs, max_deep):
+    def report(self, objs, additional_data="", max_deep=3):
 
         self.max_deep = max_deep
         ## Structure:
@@ -114,8 +109,13 @@ class Obj2Xml():
         #meta = self.meta2xml()
         xmlobjs = [self.obj2xml(obj, deep=0, cache=cache) for obj in objs]
 
+        try:
+            additional_data = ET.fromstring(additional_data)
+        except ValueError:
+            additional_data = str(additional_data)
+
         return E.report(
-            #meta,
+            additional_data,
             context,
             E.requests(*[E.request(table=c.tag, **c.attrib) for c in xmlobjs]),
             E.data(*cache.values()),
@@ -361,7 +361,13 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
         toXml = Obj2Xml(cr=cr, uid=uid, context=context)
 
-        xml_output = toXml.report(objs, max_deep=3)
+        max_deep = 3 if report_xml.xml_full_dump_deepness < 3 \
+                   else report_xml.xml_full_dump_deepness
+        data = report_xml.xml_full_dump_additional_data
+
+        xml_output = toXml.report(objs,
+                                  additional_data=data,
+                                  max_deep=max_deep)
 
         return (xml2string(xml_output), 'xml')
 
