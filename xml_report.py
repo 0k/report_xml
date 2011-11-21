@@ -354,6 +354,9 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         ## should return the raw data of a pdf
         return None
 
+    def _get_additional_data(self, cr, uid, ids, data, report_xml, context=None):
+        return report_xml.xml_full_dump_additional_data
+
     def _create_full_dump_xml(self, cr, uid, ids, data, report_xml, context=None):
         model = self.table
         pool = pooler.get_pool(cr.dbname)
@@ -363,7 +366,8 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
 
         max_deep = 3 if report_xml.xml_full_dump_deepness < 3 \
                    else report_xml.xml_full_dump_deepness
-        data = report_xml.xml_full_dump_additional_data
+
+        data = self._get_additional_data(cr, uid, ids, data, report_xml, context=None)
 
         xml_output = toXml.report(objs,
                                   additional_data=data,
