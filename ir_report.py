@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from osv import osv, fields
 import netsvc
+import ir
+
+from osv import osv, fields
 from xml_report import XmlParser
 from report.report_sxw import rml_parse
 
@@ -24,6 +26,16 @@ class ReportXML(osv.osv):
 
     def __init__(self, pool, cr):
         super(ReportXML, self).__init__(pool, cr)
+
+    def _add_print_button_exists(self, cr, uid, ids, field_name, arg, context=None):
+        res = {}
+        ir_values = self.pool.get('ir.values')
+
+        for id in ids:
+            report = self.browse(cr, uid, id, context=context)
+            domain = [('value', '=', '%s,%s' % (report.type, report.id))]
+            res[id] = True if ir_values.search(cr, uid, domain) else False
+        return res
 
     def register_all(self,cursor):
         value = super(ReportXML, self).register_all(cursor)
@@ -88,6 +100,36 @@ class ReportXML(osv.osv):
         res = super(ReportXML, self).write(cr, uid, ids, vals, context)
         return res
 
+    def add_print_button(self, cr, uid, ids, context):
+
+        report = self.browse(cr, uid, ids[0], context=context)
+
+        action_id = '%s,%d' % (report.type, report.id)
+        models = [report.model]
+
+        res = ir.ir_set(cr, uid, 'action', 'client_print_multi',
+                        report.report_name, models,
+                        action_id, isobject=True)
+
+        return True
+
+    def remove_print_button(self, cr, uid, ids, context):
+
+        report = self.browse(cr, uid, ids[0], context=context)
+
+        action_id = '%s,%d' % (report.type, report.id)
+
+        ir_values = self.pool.get('ir.values')
+        domain = [('value', '=', action_id)]
+        res =  ir_values.search(cr, uid, domain)
+
+        if len(res):
+            for id in res:
+                res = ir.ir_del(cr, uid, id)
+
+        return True
+
+
     _name = 'ir.actions.report.xml'
     _inherit = 'ir.actions.report.xml'
     _columns = {
@@ -95,7 +137,17 @@ class ReportXML(osv.osv):
         'xml_full_dump' : fields.boolean('Full dump', help="Enable the full dump of the current object."),
         'xml_full_dump_deepness' : fields.integer('Full dump deepness', help="Deepness of the full dump."),
         'xml_full_dump_additional_data' : fields.text('Additional data', help="Data to be included in the XML full dump."),
+
+        'xml_add_print_button_exists': fields.function(_add_print_button_exists,
+                                                            type="boolean", method=True),
+
         'xml_template' : fields.text('XML Template', help="Mako XML Template."),
+    }
+
+    _defaults = {
+        'xml_debug': lambda *a: False,
+        'xml_full_dump': lambda *a: True,
+        'xml_full_dump_deepness': lambda *a: "3",
     }
 
 ReportXML()

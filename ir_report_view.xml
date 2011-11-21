@@ -1,25 +1,48 @@
 <openerp>
-    <data>
-        <record id="act_report_xml_view" model="ir.ui.view">
-            <field name="name">ir.actions.report.xml.inherit</field>
-            <field name="model">ir.actions.report.xml</field>
-            <field name="inherit_id" ref="base.act_report_xml_view"/>
-            <field name="type">form</field>
-            <field name="arch" type="xml">
-                <xpath expr="/form/notebook/page[@string='Security']" position="before" >
-                    <page string="Xml" attrs="{'invisible':[('report_type','!=','xml')]}">
-                        <field name="xml_debug" />
-                        <field name="xml_full_dump"/>
-                        <group colspan="4" col="2" attrs="{'invisible':[('xml_full_dump','!=',True)]}">
-                          <field name="xml_full_dump_deepness" />
-                          <field name="xml_full_dump_additional_data" />
-                        </group>
-                        <field name="xml_template"
-                               attrs="{'invisible':[('xml_full_dump','==',True)]}"
-                               />
-                    </page>
-                </xpath>
-            </field>
-        </record>
-    </data>
+  <data>
+    <record id="act_report_xml_view" model="ir.ui.view">
+      <field name="name">ir.actions.report.xml.inherit</field>
+      <field name="model">ir.actions.report.xml</field>
+      <field name="inherit_id" ref="base.act_report_xml_view"/>
+      <field name="type">form</field>
+      <field name="arch" type="xml">
+        <xpath expr="/form/notebook/page[@string='Security']" position="before" >
+          <page string="Xml" attrs="{'invisible':[('report_type','!=','xml')]}">
+            <group colspan="2" col="2">
+              <separator colspan="4" string="Xml Dump General Options" />
+              <field name="xml_debug" />
+              <field name="xml_full_dump"/>
+            </group>
+            <group colspan="2">
+              <separator colspan="4" string="Print Actions" />
+              <!-- Field is required in the form as we will do invisible test
+                   based on its value in the client side.
+              -->
+              <field name="xml_add_print_button_exists" invisible="1"/>
+              <button type="object"
+                      string="Add Print Button"
+                      name="add_print_button"
+                      icon="gtk-add"
+                      attrs="{'invisible':[('xml_add_print_button_exists','==',True)]}"/>
+              <button type="object"
+                      string="Remove Print Button"
+                      name="remove_print_button"
+                      icon="gtk-remove"
+                      attrs="{'invisible':[('xml_add_print_button_exists','!=',True)]}"/>
+            </group>
+            <group colspan="4" col="2" attrs="{'invisible':[('xml_full_dump','!=',True)]}">
+              <separator colspan="4" string="Full Dump Options" />
+              <field name="xml_full_dump_deepness" colspan="1" />
+              <field name="xml_full_dump_additional_data" />
+            </group>
+            <group colspan="4"
+                   attrs="{'invisible':[('xml_full_dump','==',True)]}">
+              <separator colspan="4" string="Mako XML Template" />
+              <field colspan="4" name="xml_template" nolabel="1" />
+            </group>
+          </page>
+        </xpath>
+      </field>
+    </record>
+  </data>
 </openerp>
