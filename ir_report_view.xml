@@ -3,7 +3,7 @@
     <record id="act_report_xml_view" model="ir.ui.view">
       <field name="name">ir.actions.report.xml.inherit</field>
       <field name="model">ir.actions.report.xml</field>
-      <field name="inherit_id" ref="base.act_report_xml_view"/>
+      <field name="inherit_id" ref="report_xml.act_report_add_button_view"/>
       <field name="type">form</field>
       <field name="arch" type="xml">
         <xpath expr="/form/notebook/page[@string='Security']" position="before" >
@@ -12,23 +12,6 @@
               <separator colspan="4" string="Xml Dump General Options" />
               <field name="xml_debug" />
               <field name="xml_full_dump"/>
-            </group>
-            <group colspan="2">
-              <separator colspan="4" string="Print Actions" />
-              <!-- Field is required in the form as we will do invisible test
-                   based on its value in the client side.
-              -->
-              <field name="xml_add_print_button_exists" invisible="1"/>
-              <button type="object"
-                      string="Add Print Button"
-                      name="add_print_button"
-                      icon="gtk-add"
-                      attrs="{'invisible':[('xml_add_print_button_exists','==',True)]}"/>
-              <button type="object"
-                      string="Remove Print Button"
-                      name="remove_print_button"
-                      icon="gtk-remove"
-                      attrs="{'invisible':[('xml_add_print_button_exists','!=',True)]}"/>
             </group>
             <group colspan="4" col="2" attrs="{'invisible':[('xml_full_dump','!=',True)]}">
               <separator colspan="4" string="Full Dump Options" />

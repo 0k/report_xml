@@ -1,0 +1,30 @@
+<openerp>
+  <data>
+    <record id="act_report_add_button_view" model="ir.ui.view">
+      <field name="name">ir.actions.report.xml.inherit</field>
+      <field name="model">ir.actions.report.xml</field>
+      <field name="inherit_id" ref="base.act_report_xml_view"/>
+      <field name="type">form</field>
+      <field name="arch" type="xml">
+        <xpath expr="/form/notebook" position="after" >
+          <group colspan="4" col="1">
+            <!-- Field is required in the form as we will do invisible test
+                 based on its value in the client side.
+            -->
+            <field name="add_print_button_exists" invisible="1"/>
+            <button type="object"
+                    string="Add Print Button"
+                    name="add_print_button"
+                    icon="gtk-add"
+                    attrs="{'invisible':[('add_print_button_exists','==',True)]}"/>
+            <button type="object"
+                    string="Remove Print Button"
+                    name="remove_print_button"
+                    icon="gtk-remove"
+                    attrs="{'invisible':[('add_print_button_exists','!=',True)]}"/>
+          </group>
+        </xpath>
+      </field>
+    </record>
+  </data>
+</openerp>
