@@ -16,5 +16,4 @@ The module structure and some code is inspired by the report_webkit module.
     ],
     "installable" : True,
     "active" : False,
-#    "certificate" : "001159699313338995949",
 }
