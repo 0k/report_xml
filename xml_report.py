@@ -357,7 +357,9 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
     def _get_additional_data(self, cr, uid, ids, data, report_xml, context=None):
         return report_xml.xml_full_dump_additional_data
 
-    def _create_full_dump_xml(self, cr, uid, ids, data, report_xml, context=None):
+    def _create_full_dump_xml(self, cr, uid, ids, data, report_xml, context=None,
+                              additional_data=None):
+
         model = self.table
         pool = pooler.get_pool(cr.dbname)
         table_obj = pool.get(model)
@@ -367,7 +369,7 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         max_deep = 3 if report_xml.xml_full_dump_deepness < 3 \
                    else report_xml.xml_full_dump_deepness
 
-        data = self._get_additional_data(cr, uid, ids, data, report_xml, context=None)
+        data = additional_data or report_xml.xml_full_dump_additional_data
 
         xml_output = toXml.report(objs,
                                   additional_data=data,
