@@ -194,38 +194,36 @@ class Obj2Xml():
         for key, field_def in self.get_fields_def(obj).iteritems():
 
             G = getattr(E, key)
-            try:
-                raw_value = getattr(obj, key)
-            except Exception, e:
-                raw_value = e
-
-            if not self.KEEP_FALSE_VALUE and \
-                   field_def['type'] != "boolean" and \
-                   raw_value is False:
-                continue
-
-            if not isinstance(raw_value, Exception):
-                value = self.obj2xml(raw_value, deep=deep + 1, cache=cache)
-                if value is None:
-                    continue
-            else:
-                value = raw_value
 
             ## XXXvlab: what should I do of the states ?
             attr = dict((k, unicode(v))
                         for k, v in field_def.iteritems()
                         if k in self._attr_keep_fields)
 
-            if isinstance(value, Exception):
+            try:
+                raw_value = getattr(obj, key)
+            except Exception, e:
                 attr['cropped'] = "EXCEPTION"
-                attr['exception-type'] = type(value).__name__
-                if isinstance(value, except_orm):
-                    attr['exception-name'] = value.name
-                    attr['exception-value'] = value.value
+                attr['exception-type'] = type(e).__name__
+                if isinstance(e, except_orm):
+                    attr['exception-name'] = e.name
+                    attr['exception-value'] = e.value
                 else:
-                    attr['exception-repr'] = repr(value)
+                    attr['exception-repr'] = repr(e)
                 elt = G(**attr)
                 res.append(elt)
+                continue
+
+            if not self.KEEP_FALSE_VALUE and \
+                   field_def['type'] != "boolean" and \
+                   raw_value is False:
+                attr['undefined'] = "True"
+                elt = G(**attr)
+                res.append(elt)
+                continue
+
+            value = self.obj2xml(raw_value, deep=deep + 1, cache=cache)
+            if value is None:
                 continue
 
             if not isinstance(value, ElementClass):
