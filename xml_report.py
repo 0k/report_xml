@@ -103,7 +103,7 @@ class Obj2Xml():
 
         try:
             additional_data = ET.fromstring(additional_data)
-        except ValueError:
+        except (ET.XMLSyntaxError, ValueError):
             additional_data = str(additional_data)
 
         return E.report(
