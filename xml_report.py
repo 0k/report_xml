@@ -17,6 +17,7 @@ import addons
 import tools
 from tools.translate import _
 from osv.osv import except_osv
+from osv.orm import except_orm
 
 from copy import deepcopy
 from lxml import etree as ET
@@ -195,21 +196,39 @@ class Obj2Xml():
 
         res = cache[str(obj)] = F(**attrs)
         for key, field_def in self.get_fields_def(obj).iteritems():
-            raw_value = getattr(obj, key)
+
+            G = getattr(E, key)
+            try:
+                raw_value = getattr(obj, key)
+            except Exception, e:
+                raw_value = e
+
             if not self.KEEP_FALSE_VALUE and \
                    field_def['type'] != "boolean" and \
                    raw_value is False:
                 continue
 
-            value = self.obj2xml(raw_value, deep=deep + 1, cache=cache)
-            if value is None:
-                continue
-
-            G = getattr(E, key)
+            if not isinstance(raw_value, Exception):
+                value = self.obj2xml(raw_value, deep=deep + 1, cache=cache)
+                if value is None:
+                    continue
+            else:
+                value = raw_value
 
             attr = dict((k, unicode(v))
                         for k, v in field_def.iteritems()
                         if k in self._attr_keep_fields) ## XXXvlab: what should I do of the states ?
+            if isinstance(value, Exception):
+                attr['cropped'] = "EXCEPTION"
+                attr['exception-type'] = type(value).__name__
+                if isinstance(value, except_orm):
+                    attr['exception-name'] = value.name
+                    attr['exception-value'] = value.value
+                else:
+                    attr['exception-repr'] = repr(value)
+                elt = G(**attr)
+                res.append(elt)
+                continue
 
             if not isinstance(value, ElementClass):
                 elt = G(value, **attr)
