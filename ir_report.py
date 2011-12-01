@@ -105,6 +105,7 @@ class ReportXML(osv.osv):
         'xml_debug': lambda *a: False,
         'xml_full_dump': lambda *a: True,
         'xml_full_dump_deepness': lambda *a: "3",
+        'xml_full_dump_additional_data': lambda *a: "<prefix></prefix>",
     }
 
 ReportXML()
