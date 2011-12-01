@@ -1,25 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import subprocess
-import os
-import report
-import tempfile
-import time
 from mako.template import Template
-from mako import exceptions
 import netsvc
 import pooler
 
 import report_webkit
 
 from report.report_sxw import *
-import addons
-import tools
 from tools.translate import _
 from osv.osv import except_osv
 from osv.orm import except_orm
 
-from copy import deepcopy
 from lxml import etree as ET
 from lxml.builder import E
 
@@ -27,7 +18,8 @@ from lxml.builder import E
 ##
 ## TODO:
 ##
-## - clean Obj2Xml oe-object xml making process. (remove all rewriting of elements ?)
+## - clean Obj2Xml oe-object xml making process. (remove all rewriting of
+## elements ?)
 ##
 ##
 
@@ -61,7 +53,6 @@ class Obj2Xml():
                         ]
     KEEP_FALSE_VALUE = False
 
-
     def __init__(self, **kwargs):
         self.meta = {}
         for k, v in kwargs.iteritems():
@@ -74,8 +65,8 @@ class Obj2Xml():
     def context2xml(self, cache):
         c = self.context.copy()
 
-        ## Removing any active_* keys, as they are active_id(s) and active_model
-        ## already in the <requests> element.
+        ## Removing any active_* keys, as they are active_id(s) and
+        ## active_model already in the <requests> element.
         for k in c.keys():
             if k.startswith("active_"):
                 del c[k]
@@ -123,6 +114,8 @@ class Obj2Xml():
         )
 
     def get_fields_def(self, obj):
+        ## (access to a private member '_table')
+        ## pylint: disable=W0212
         return obj._table.fields_get(self.cr, self.uid, None, self.context)
 
     def _xml_dict(self, obj, deep, cache):
@@ -131,7 +124,7 @@ class Obj2Xml():
             try:
                 xml = self.obj2xml(v, deep=deep, cache=cache)
             except NotImplementedError:
-                continue ## ignore bad field.
+                continue  ## ignore bad field.
             elts.append(getattr(E, k)(xml))
         if len(elts) == 0:
             return None
@@ -143,23 +136,25 @@ class Obj2Xml():
             try:
                 xml = self.obj2xml(v, deep=deep, cache=cache)
             except NotImplementedError:
-                continue ## ignore bad field.
+                continue  ## ignore bad field.
             elts.append(E.li(xml))
         if len(elts) == 0:
             return None
         return E.ul(*elts)
 
-    def _xml_str(self, obj, deep, cache):
+    def _xml_str(self, obj, _deep, _cache):
         return str(obj)
 
-    def _xml_unicode(self, obj, deep, cache):
+    def _xml_unicode(self, obj, _deep, _cache):
         return unicode(obj)
 
-    def _xml_bool(self, obj, deep, cache):
+    def _xml_bool(self, obj, _deep, _cache):
         return E.bool(value=str(obj))
 
     def _xml_oe_object(self, obj, deep, cache):
 
+        ## (access to a private member '_table')
+        ## pylint: disable=W0212
         if not hasattr(obj, '_table') or obj._table is None:
             F = getattr(E, "oe-object")
             attrs = {
@@ -172,9 +167,10 @@ class Obj2Xml():
                 return F(*(self.obj2xml(o, deep=deep, cache=cache)
                            for i, o in enumerate(obj)))
             if class_name == 'browse_null':
-                return None ## element is removed
+                return None  ## element is removed
 
-            raise NotImplementedError("This oe-object is unknown: %r (type: %r)"
+            raise NotImplementedError("This oe-object is unknown: %r "
+                                      "(type: %r)"
                                       % (obj, type(obj)))
 
         attrs = {
@@ -215,9 +211,11 @@ class Obj2Xml():
             else:
                 value = raw_value
 
+            ## XXXvlab: what should I do of the states ?
             attr = dict((k, unicode(v))
                         for k, v in field_def.iteritems()
-                        if k in self._attr_keep_fields) ## XXXvlab: what should I do of the states ?
+                        if k in self._attr_keep_fields)
+
             if isinstance(value, Exception):
                 attr['cropped'] = "EXCEPTION"
                 attr['exception-type'] = type(value).__name__
@@ -347,6 +345,7 @@ def mako_template(text):
     # default_filters=['unicode', 'h'] can be used to set global filters
     return Template(text, input_encoding='utf-8', output_encoding='utf-8')
 
+
 def xml2string(content):
     """Render a ElementTree to a string with some default options
 
@@ -441,17 +440,17 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
 
         return self._create_mako_xml(cr, uid, ids, data, report_xml, context)
 
-    def create(self, cursor, uid, ids, data, context=None):
+    def create(self, cr, uid, ids, data, context=None):
         """We override the create function in order to handle generator
            Code taken from report webkit. Thanks guys :) """
 
-        pool = pooler.get_pool(cursor.dbname)
+        pool = pooler.get_pool(cr.dbname)
         ir_obj = pool.get('ir.actions.report.xml')
-        report_xml_ids = ir_obj.search(cursor, uid,
+        report_xml_ids = ir_obj.search(cr, uid,
                 [('report_name', '=', self.name[7:])], context=context)
         if report_xml_ids:
             report_xml = ir_obj.browse(
-                                        cursor,
+                                        cr,
                                         uid,
                                         report_xml_ids[0],
                                         context=context
@@ -462,10 +461,10 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
             report_rml.report_sxw_content = None
             report_rml.report_sxw = None
         else:
-            return super(XmlParser, self).create(cursor, uid, ids, data, context)
+            return super(XmlParser, self).create(cr, uid, ids, data, context)
         if report_xml.report_type != 'xml' :
-            return super(XmlParser, self).create(cursor, uid, ids, data, context)
-        result = self.create_source_pdf(cursor, uid, ids, data, report_xml, context)
+            return super(XmlParser, self).create(cr, uid, ids, data, context)
+        result = self.create_source_pdf(cr, uid, ids, data, report_xml, context)
         if not result:
             return (False,False)
         return result
