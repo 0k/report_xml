@@ -36,6 +36,10 @@ def is_of_browser_interface(obj):
             or module_name.startswith('openerp.osv'))  ## openerp 6.1
 
 
+def hash_oe(obj):
+    return (obj._table_name, obj._id)
+
+
 class Obj2Xml():
     """Generic python object to XML converter
 
@@ -51,6 +55,9 @@ class Obj2Xml():
                         (bool, "_xml_bool"),
                         ((int, basestring, float), "_xml_str")
                         ]
+
+    _remove_models = ["ir.ui.menu", "res.groups", "res.currency.rate", "ir.model.access"]
+              
     KEEP_FALSE_VALUE = False
 
     def __init__(self, **kwargs):
@@ -61,6 +68,11 @@ class Obj2Xml():
         self.uid = kwargs['uid']
         self.context = kwargs['context']
         self.cr = kwargs['cr']
+
+        self._oe_cache = {}
+        self._oe_graph = {}
+        self._oe_key_defs = {}
+        self._oe_getattr = {}
 
     def context2xml(self, cache):
         c = self.context.copy()
@@ -77,7 +89,8 @@ class Obj2Xml():
         objs = table_obj.browse(self.cr, self.uid, [self.uid],
                                 list_class=None, context=self.context,
                                 fields_process=None)
-        xmlobj = self.obj2xml(objs[0], deep=2, cache=cache)
+        self._mk_oe_graph(objs[0], deep=0)
+        xmlobj = self.obj2xml(objs[0], deep=0, cache=cache)
 
         user = E.user(table="res.users", **xmlobj.attrib)
 
@@ -99,6 +112,9 @@ class Obj2Xml():
         cache = {}
         context = self.context2xml(cache=cache)
         #meta = self.meta2xml()
+        for obj in objs:
+            self._mk_oe_graph(obj, deep=0)
+
         xmlobjs = [self.obj2xml(obj, deep=0, cache=cache) for obj in objs]
 
         try:
@@ -118,6 +134,30 @@ class Obj2Xml():
         ## pylint: disable=W0212
         return obj._table.fields_get(self.cr, self.uid, None, self.context)
 
+    def oe_subobjs(self, obj, hash_obj):
+        self._oe_key_defs[hash_obj] = fields = self.get_fields_def(obj)
+        self._oe_getattr[hash_obj] = attr = {}
+        objs = []
+        for key, field_def in fields.iteritems():
+            ftype = field_def["type"]
+            if ftype not in ("one2one", "many2one",
+                             "many2many", "one2many"):
+                continue
+            try:
+                r = getattr(obj, key)
+            except Exception, e:
+                continue
+            if r.__class__.__name__ == 'browse_null':
+                continue  ## element is removed
+            if ftype in ("one2one", "many2one"):
+                attr[key] = r
+                objs.append(r)
+            elif ftype in ("one2many", "many2many"):
+                attr[key] = r
+                objs.extend(r)
+        return objs
+
+
     def _xml_dict(self, obj, deep, cache):
         elts = []
         for k, v in obj.iteritems():
@@ -129,6 +169,27 @@ class Obj2Xml():
         if len(elts) == 0:
             return None
         return E.dict(*elts)
+
+
+    def _mk_oe_graph(self, obj, deep):
+        queue = [(deep, obj)]
+        count = 1
+        while len(queue) != 0:
+            deep, obj = queue.pop(0)
+            hash_obj = hash_oe(obj)
+            self._oe_cache[hash_obj] = (deep, obj)
+            subobjs = self.oe_subobjs(obj, hash_obj)
+            self._oe_graph[hash_obj] = []
+            for subobj in subobjs:
+                hash_subobj = hash_oe(subobj)
+                self._oe_graph[hash_obj].append(hash_subobj)
+
+                if hash_subobj[0] not in self._remove_models and \
+                       hash_subobj not in self._oe_cache and deep <= self.max_deep:
+                    queue.append((deep + 1, subobj))
+                    count += 1
+
+        print "cache %s elements" % count
 
     def _xml_list(self, obj, deep, cache):
         elts = []
@@ -153,6 +214,7 @@ class Obj2Xml():
 
     def _xml_oe_object(self, obj, deep, cache):
 
+
         ## (access to a private member '_table')
         ## pylint: disable=W0212
         if not hasattr(obj, '_table') or obj._table is None:
@@ -173,9 +235,13 @@ class Obj2Xml():
                                       "(type: %r)"
                                       % (obj, type(obj)))
 
+
+        ## This is the real deepness
+        deep = self._oe_cache[hash_oe(obj)][0]
+
         attrs = {
             "id": str(obj._id),
-            "min-deep": str(deep),
+            "deep": str(deep),
             }
 
         F = getattr(E, obj._table_name)
@@ -183,16 +249,11 @@ class Obj2Xml():
         # Using repr as id...
         cached_value = cache.get(str(obj), None)
         if cached_value is not None:
-            cached_value.attrib['min-deep'] = str(
-                min(deep, int(cached_value.attrib['min-deep'])))
             return F(**attrs)
 
-        if deep == self.max_deep:
-            return F(cropped="MAX_DEEPNESS_REACHED", **attrs)
-
         res = cache[str(obj)] = F(**attrs)
-        for key, field_def in self.get_fields_def(obj).iteritems():
-
+        hash_obj = hash_oe(obj)
+        for key, field_def in self._oe_key_defs[hash_obj].iteritems():
             G = getattr(E, key)
 
             ## XXXvlab: what should I do of the states ?
@@ -200,19 +261,23 @@ class Obj2Xml():
                         for k, v in field_def.iteritems()
                         if k in self._attr_keep_fields)
 
-            try:
-                raw_value = getattr(obj, key)
-            except Exception, e:
-                attr['cropped'] = "EXCEPTION"
-                attr['exception-type'] = type(e).__name__
-                if isinstance(e, except_orm):
-                    attr['exception-name'] = e.name
-                    attr['exception-value'] = e.value
-                else:
-                    attr['exception-repr'] = repr(e)
-                elt = G(**attr)
-                res.append(elt)
-                continue
+            oe_attrs = self._oe_getattr[hash_obj]
+            if key in oe_attrs:
+                raw_value = oe_attrs[key]
+            else:
+                try:
+                    raw_value = getattr(obj, key)
+                except Exception, e:
+                    attr['cropped'] = "EXCEPTION"
+                    attr['exception-type'] = type(e).__name__
+                    if isinstance(e, except_orm):
+                        attr['exception-name'] = e.name
+                        attr['exception-value'] = e.value
+                    else:
+                        attr['exception-repr'] = repr(e)
+                    elt = G(**attr)
+                    res.append(elt)
+                    continue
 
             if not self.KEEP_FALSE_VALUE and \
                    field_def['type'] != "boolean" and \
@@ -221,6 +286,19 @@ class Obj2Xml():
                 elt = G(**attr)
                 res.append(elt)
                 continue
+
+            if "relation" in field_def:
+                if deep + 1 >= self.max_deep:
+                    attr["table"] = field_def["relation"]
+                    attr["cropped"] = "MAX_DEEPNESS_REACHED"
+                    elt = G(**attr)
+                    res.append(elt)
+                    continue
+                elif field_def["relation"] in self._remove_models:
+                    attr["cropped"] = "MATCHED_IGNORE_MODELS"
+                    elt = G(**attr)
+                    res.append(elt)
+                    continue
 
             value = self.obj2xml(raw_value, deep=deep + 1, cache=cache)
             if value is None:
@@ -272,7 +350,6 @@ class Obj2Xml():
         return F(**attrs)
 
     def obj2xml(self, obj, deep=0, cache=None):
-
         cache = {} if cache is None else cache
 
         for types, fn_name in self._dump_dispatcher:
