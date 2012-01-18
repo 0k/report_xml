@@ -1,6 +1,5 @@
-import ir
-
 from osv import osv, fields
+
 
 class AddReportButton(osv.osv):
 
@@ -20,10 +19,10 @@ class AddReportButton(osv.osv):
 
         action_id = '%s,%d' % (report.type, report.id)
         models = [report.model]
-
-        res = ir.ir_set(cr, uid, 'action', 'client_print_multi',
-                        report.report_name, models,
-                        action_id, isobject=True)
+        ir_values = self.pool.get('ir.values')
+        ir_values.set(cr, uid, 'action', 'client_print_multi',
+                         report.report_name, models,
+                         action_id, isobject=True)
 
         return True
 
@@ -38,8 +37,7 @@ class AddReportButton(osv.osv):
         res =  ir_values.search(cr, uid, domain)
 
         if len(res):
-            for id in res:
-                res = ir.ir_del(cr, uid, id)
+            ir_values.unlink(cr, uid, res)
 
         return True
 
