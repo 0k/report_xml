@@ -165,6 +165,8 @@ class Obj2Xml():
                 xml = self.obj2xml(v, deep=deep, cache=cache)
             except NotImplementedError:
                 continue  ## ignore bad field.
+            if xml is None:
+                continue
             elts.append(getattr(E, k)(xml))
         if len(elts) == 0:
             return None
@@ -198,6 +200,8 @@ class Obj2Xml():
                 xml = self.obj2xml(v, deep=deep, cache=cache)
             except NotImplementedError:
                 continue  ## ignore bad field.
+            if xml is None:
+                continue
             elts.append(E.li(xml))
         if len(elts) == 0:
             return None
