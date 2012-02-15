@@ -17,6 +17,7 @@
               <separator colspan="4" string="Full Dump Options" />
               <field name="xml_full_dump_deepness" colspan="1" />
               <field name="xml_full_dump_additional_data" />
+              <field name="xml_full_dump_unfold_outline" />
             </group>
             <group colspan="4"
                    attrs="{'invisible':[('xml_full_dump','==',True)]}">

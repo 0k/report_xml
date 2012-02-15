@@ -96,7 +96,7 @@ class ReportXML(osv.osv):
         'xml_full_dump' : fields.boolean('Full dump', help="Enable the full dump of the current object."),
         'xml_full_dump_deepness' : fields.integer('Full dump deepness', help="Deepness of the full dump."),
         'xml_full_dump_additional_data' : fields.text('Additional data', help="Data to be included in the XML full dump."),
-
+        'xml_full_dump_unfold_outline' : fields.text('Unfold Outline', help="Python dictionnary to draw the unfold outline of the dump"),
 
         'xml_template' : fields.text('XML Template', help="Mako XML Template."),
     }

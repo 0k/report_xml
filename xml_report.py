@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import logging
+import traceback
+
 from mako.template import Template
 import netsvc
 import pooler
@@ -14,6 +17,7 @@ from osv.orm import except_orm
 from lxml import etree as ET
 from lxml.builder import E
 
+from tools.safe_eval import safe_eval as eval
 
 ##
 ## TODO:
@@ -27,6 +31,13 @@ from lxml.builder import E
 
 ElementClass = type(E.dummy())
 
+def format_last_exception():
+    """Format the last exception for display it in tests."""
+
+    return '\n'.join(
+        ["  | " + line for line in traceback.format_exc().strip().split('\n')]
+    )
+
 
 ## XXXvlab: yuk ! I would have appreciated to have a common ancestor to
 ## osv object...
@@ -38,6 +49,8 @@ def is_of_browser_interface(obj):
 
 def hash_oe(obj):
     return (obj._table_name, obj._id)
+
+
 
 
 class Obj2Xml():
@@ -57,7 +70,7 @@ class Obj2Xml():
                         ]
 
     _remove_models = ["ir.ui.menu", "res.groups", "res.currency.rate", "ir.model.access"]
-              
+
     KEEP_FALSE_VALUE = False
 
     def __init__(self, **kwargs):
@@ -71,8 +84,10 @@ class Obj2Xml():
 
         self._oe_cache = {}
         self._oe_graph = {}
+        self._outlines = {}
         self._oe_key_defs = {}
         self._oe_getattr = {}
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def context2xml(self, cache):
         c = self.context.copy()
@@ -89,8 +104,8 @@ class Obj2Xml():
         objs = table_obj.browse(self.cr, self.uid, [self.uid],
                                 list_class=None, context=self.context,
                                 fields_process=None)
-        self._mk_oe_graph(objs[0], deep=0)
-        xmlobj = self.obj2xml(objs[0], deep=0, cache=cache)
+        self._mk_oe_graph(objs[0], deep=0, outline=['*'])
+        xmlobj = self.obj2xml(objs[0], deep=0, cache=cache, outline=["*"])
 
         user = E.user(table="res.users", **xmlobj.attrib)
 
@@ -99,7 +114,7 @@ class Obj2Xml():
         context.append(user)
         return context
 
-    def report(self, objs, additional_data="", max_deep=3):
+    def report(self, objs, additional_data="", max_deep=3, outline=None):
 
         self.max_deep = max_deep
         ## Structure:
@@ -113,9 +128,10 @@ class Obj2Xml():
         context = self.context2xml(cache=cache)
         #meta = self.meta2xml()
         for obj in objs:
-            self._mk_oe_graph(obj, deep=0)
+            self._mk_oe_graph(obj, deep=0, outline=outline)
 
-        xmlobjs = [self.obj2xml(obj, deep=0, cache=cache) for obj in objs]
+        xmlobjs = [self.obj2xml(obj, deep=0, cache=cache, outline=outline)
+                   for obj in objs]
 
         try:
             additional_data = ET.fromstring(additional_data)
@@ -134,35 +150,91 @@ class Obj2Xml():
         ## pylint: disable=W0212
         return obj._table.fields_get(self.cr, self.uid, None, self.context)
 
-    def oe_subobjs(self, obj, hash_obj):
+    def _outline_hash(self, outline):
+        if isinstance(outline, dict):
+            h = hash(
+                tuple((k, self._outline_hash(v))
+                      for k, v in sorted(outline.items(),
+                                         key=(lambda t: t[0]))))
+        elif isinstance(outline, list):
+            h = hash(tuple(outline))
+        else:
+            h = outline
+        self._outlines[h] = outline
+        return h
+
+    def oe_subobjs(self, obj, hash_obj, outline):
         self._oe_key_defs[hash_obj] = fields = self.get_fields_def(obj)
         self._oe_getattr[hash_obj] = attr = {}
-        objs = []
+        objs = set()
         for key, field_def in fields.iteritems():
             ftype = field_def["type"]
             if ftype not in ("one2one", "many2one",
                              "many2many", "one2many"):
                 continue
+            new_outline = self._check_outline(outline, obj, key, field_def)
+            if new_outline is False:
+                continue
+            new_outline_hash = self._outline_hash(new_outline)
             try:
                 r = getattr(obj, key)
             except Exception, e:
+                formated = format_last_exception()
+                self._logger.error("CACHE FAILED: Exception received while "
+                                   "getattr object %r on attribute %r:\n%s"
+                                   % (obj, key, formated))
                 continue
             if r.__class__.__name__ == 'browse_null':
                 continue  ## element is removed
             if ftype in ("one2one", "many2one"):
                 attr[key] = r
-                objs.append(r)
+                objs.add((r, new_outline_hash))
             elif ftype in ("one2many", "many2many"):
                 attr[key] = r
-                objs.extend(r)
+                objs.update((elt, new_outline_hash) for elt in r)
         return objs
 
+    def _mk_oe_graph(self, obj, deep, outline):
+        queue = [(deep, obj, self._outline_hash(outline))]
+        count = 1
+        parse = 1
+        while len(queue) != 0:
+            deep, obj, outline_hash = queue.pop(0)
+            hash_obj = hash_oe(obj)
+            ## XXXvlab: first outline has precedence on the following.
+            ## This can be bogus.
+            if hash_obj in self._oe_cache:
+                ## then outline has to be augmented.
+                if outline_hash in self._oe_cache[hash_obj][2]:
+                    ## forget this object with this outline has already been
+                    ## parsed.
+                    continue
+                self._oe_cache[hash_obj][2].append(outline_hash)
+            else:
+                self._oe_cache[hash_obj] = (deep, obj, [outline_hash])
+            count += 1
+            subobjs = self.oe_subobjs(obj, hash_obj, self._outlines[outline_hash])
+            self._oe_graph[hash_obj] = set()
+            for subobj, suboutline_hash in subobjs:
+                hash_subobj = hash_oe(subobj)
+                self._oe_graph[hash_obj].add(hash_subobj)
 
-    def _xml_dict(self, obj, deep, cache):
+                if hash_subobj[0] not in self._remove_models and \
+                       ((hash_subobj not in self._oe_cache) or
+                        ## This suboutline is not already stored
+                        suboutline_hash not in self._oe_cache[hash_subobj][2]) and \
+                       deep <= self.max_deep:
+                    print "obj %r adds %r of deepness %r" % (obj, subobj, deep)
+                    queue.append((deep + 1, subobj, suboutline_hash))
+                    parse += 1
+
+        print "cache %s elements and parsed %r." % (count, parse)
+
+    def _xml_dict(self, obj, deep, cache, outline=None):
         elts = []
         for k, v in obj.iteritems():
             try:
-                xml = self.obj2xml(v, deep=deep, cache=cache)
+                xml = self.obj2xml(v, deep=deep, cache=cache, outline=outline)
             except NotImplementedError:
                 continue  ## ignore bad field.
             if xml is None:
@@ -172,32 +244,11 @@ class Obj2Xml():
             return None
         return E.dict(*elts)
 
-
-    def _mk_oe_graph(self, obj, deep):
-        queue = [(deep, obj)]
-        count = 1
-        while len(queue) != 0:
-            deep, obj = queue.pop(0)
-            hash_obj = hash_oe(obj)
-            self._oe_cache[hash_obj] = (deep, obj)
-            subobjs = self.oe_subobjs(obj, hash_obj)
-            self._oe_graph[hash_obj] = []
-            for subobj in subobjs:
-                hash_subobj = hash_oe(subobj)
-                self._oe_graph[hash_obj].append(hash_subobj)
-
-                if hash_subobj[0] not in self._remove_models and \
-                       hash_subobj not in self._oe_cache and deep <= self.max_deep:
-                    queue.append((deep + 1, subobj))
-                    count += 1
-
-        print "cache %s elements" % count
-
-    def _xml_list(self, obj, deep, cache):
+    def _xml_list(self, obj, deep, cache, outline=None):
         elts = []
         for v in obj:
             try:
-                xml = self.obj2xml(v, deep=deep, cache=cache)
+                xml = self.obj2xml(v, deep=deep, cache=cache, outline=outline)
             except NotImplementedError:
                 continue  ## ignore bad field.
             if xml is None:
@@ -207,17 +258,56 @@ class Obj2Xml():
             return None
         return E.ul(*elts)
 
-    def _xml_str(self, obj, _deep, _cache):
+    def _xml_str(self, obj, _deep, _cache, outline=None):
         return str(obj)
 
-    def _xml_unicode(self, obj, _deep, _cache):
+    def _xml_unicode(self, obj, _deep, _cache, outline=None):
         return unicode(obj)
 
-    def _xml_bool(self, obj, _deep, _cache):
+    def _xml_bool(self, obj, _deep, _cache, outline=None):
         return E.bool(value=str(obj))
 
-    def _xml_oe_object(self, obj, deep, cache):
+    def _check_outline(self, outline, obj, key, field_def):
+        """Returns False if outline forbids to continue, and a new_outline to
+        provide to the child if outline allows to go deeper.
 
+        """
+
+        if outline is None:
+            return None
+
+        if key not in outline and '*' not in outline:
+            return False
+
+        is_complex = field_def['type'] in ["one2many", "many2many",
+                                           "many2one", "one2one"]
+
+        if isinstance(outline, list):
+            if is_complex:
+                if key in outline:
+                    ## You're are doing it wrong
+                    self._logger.warn("Object %r outline %r is not a dict. "
+                                      "Thus it should list only simple fields. "
+                                      "But field %r is complex and was listed: "
+                                      "this is incoherent. Ignoring this field."
+                                      % (obj, outline, key))
+                return False  ## No complex fields through list form.
+            return []  ## Empty outline for simple form
+
+        if isinstance(outline, dict):
+            if key in outline:
+                return outline[key]
+            ## then '*' in outline
+            if is_complex:
+                return False  ## no complex fields can be selected with '*'
+            return []
+
+        self._logger.warn("Object %r outline %r is not a dict, a list, "
+                          "nor value None. Ignoring all fields. field %r"
+                          % (obj, outline, key, ))
+        return False
+
+    def _xml_oe_object(self, obj, deep, cache, outline=None):
 
         ## (access to a private member '_table')
         ## pylint: disable=W0212
@@ -230,7 +320,8 @@ class Obj2Xml():
             class_name = obj.__class__.__name__
             if class_name == 'browse_record_list':
                 assert False
-                return F(*(self.obj2xml(o, deep=deep, cache=cache)
+                return F(*(self.obj2xml(o, deep=deep, cache=cache,
+                                        outline=outline)
                            for i, o in enumerate(obj)))
             if class_name == 'browse_null':
                 return None  ## element is removed
@@ -238,7 +329,6 @@ class Obj2Xml():
             raise NotImplementedError("This oe-object is unknown: %r "
                                       "(type: %r)"
                                       % (obj, type(obj)))
-
 
         ## This is the real deepness
         deep = self._oe_cache[hash_oe(obj)][0]
@@ -258,10 +348,17 @@ class Obj2Xml():
         res = cache[str(obj)] = F(**attrs)
         hash_obj = hash_oe(obj)
         for key, field_def in self._oe_key_defs[hash_obj].iteritems():
+
+            ## Outline checking
+            field_outline = self._check_outline(outline, obj, key, field_def)
+            if field_outline is False:
+                continue
+
             G = getattr(E, key)
 
             ## XXXvlab: what should I do of the states ?
-            attr = dict((k, unicode(v))
+            attr = dict((k, v if isinstance(v, unicode) else \
+                                  unicode(v, 'utf-8'))
                         for k, v in field_def.iteritems()
                         if k in self._attr_keep_fields)
 
@@ -304,7 +401,8 @@ class Obj2Xml():
                     res.append(elt)
                     continue
 
-            value = self.obj2xml(raw_value, deep=deep + 1, cache=cache)
+            value = self.obj2xml(raw_value, deep=deep + 1, cache=cache,
+                                 outline=field_outline)
             if value is None:
                 continue
 
@@ -353,15 +451,16 @@ class Obj2Xml():
 
         return F(**attrs)
 
-    def obj2xml(self, obj, deep=0, cache=None):
+    def obj2xml(self, obj, deep=0, cache=None, outline=None):
         cache = {} if cache is None else cache
 
         for types, fn_name in self._dump_dispatcher:
             if isinstance(obj, types):
-                return getattr(self, fn_name, types)(obj, deep, cache)
+                return getattr(self, fn_name, types)(obj, deep, cache,
+                                                     outline=outline)
 
         if is_of_browser_interface(obj):
-            return self._xml_oe_object(obj, deep, cache)
+            return self._xml_oe_object(obj, deep, cache, outline=outline)
 
         raise NotImplementedError("Dump not implemented for %r (type: %r)"
                                   % (obj, type(obj)))
@@ -441,9 +540,10 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
     """
 
     def __init__(self, name, table, rml=False, parser=False,
-        header=True, store=False):
+                 header=True, store=False):
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.parser_instance = False
-        self.localcontext={}
+        self.localcontext = {}
         super(XmlParser, self).__init__(name, table, rml,
                                         parser, header, store)
 
@@ -467,10 +567,21 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
                    else report_xml.xml_full_dump_deepness
 
         data = additional_data or report_xml.xml_full_dump_additional_data
+        outline_string = report_xml.xml_full_dump_unfold_outline or ""
+        if outline_string:
+            try:
+                outline = eval(report_xml.xml_full_dump_unfold_outline) or None
+            except Exception, e:
+                self._logger.error('unfold outline evaluation failed:\n%s' % e.message)
+                raise
+        else:
+            outline = None
 
         xml_output = toXml.report(objs,
                                   additional_data=data,
-                                  max_deep=max_deep)
+                                  max_deep=max_deep,
+                                  outline=outline,
+                                  )
 
         return (xml2string(xml_output), 'xml')
 
