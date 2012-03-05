@@ -360,7 +360,9 @@ class Obj2Xml():
             attr = dict((k, v if isinstance(v, unicode) else \
                                   unicode(v, 'utf-8'))
                         for k, v in field_def.iteritems()
-                        if k in self._attr_keep_fields)
+                        if k in self._attr_keep_fields and
+                           ## it has happened that ``v`` was False.
+                           isinstance(v, basestring))
 
             oe_attrs = self._oe_getattr[hash_obj]
             if key in oe_attrs:
