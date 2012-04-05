@@ -618,17 +618,16 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
 
         return self.create_single_xml(cr, uid, ids, data, report_xml, context)
 
-    def create_single_xml(self, cr, uid, ids, data, report_xml, context=None):
+    def create_single_xml(self, cr, uid, ids, data, report_xml, context=None,
+                          additional_data=None):
         """generate the XML"""
 
         if context is None:
             context={}
 
-        if report_xml.report_type != 'xml':
-            return super(XmlParser,self).create_single_pdf(cr, uid, ids, data, report_xml, context=context)
-
         if report_xml.xml_full_dump:
-            return self._create_full_dump_xml(cr, uid, ids, data, report_xml, context)
+            return self._create_full_dump_xml(cr, uid, ids, data, report_xml, context,
+                                              additional_data)
 
         return self._create_mako_xml(cr, uid, ids, data, report_xml, context)
 
