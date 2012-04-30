@@ -18,6 +18,8 @@ from lxml import etree as ET
 from lxml.builder import E
 
 from tools.safe_eval import safe_eval as eval
+import mako_tools
+
 
 ##
 ## TODO:
@@ -476,46 +478,6 @@ class Bunch(dict):
         self.__dict__.update(b)
 
 
-## Simple wrapper for browser object
-class MakoParsable(object):
-
-    NULL = {}
-
-    def __init__(self, browser):
-        self._browser = browser
-        fields_def = {}
-        if hasattr(browser, "_table") and \
-               browser._table is not None: ## browse_null class will by pass this
-            fields_def = browser._table.fields_get(
-                browser._cr, browser._uid, None, browser._context)
-        self._fields = Bunch(fields_def)
-
-    def __getitem__(self, label):
-
-        if label not in self._fields and \
-           ("%s_id" % label) in self._fields:
-            return self["%s_id"]
-
-        return self._browser.__getitem__(label)
-
-    def __getattr__(self, label):
-
-        if label not in self._fields and \
-           ("%s_id" % label) in self._fields:
-            return getattr(self, "%s_id" % label)
-
-        val = getattr(self._browser, label)
-
-        if is_of_browser_interface(val):
-            class_name = val.__class__.__name__
-            if hasattr(val, "_table") or \
-               class_name == 'browse_null':
-                return MakoParsable(val)
-            if class_name == 'browse_record_list':
-                return [MakoParsable(v) for v in val]
-
-        return val
-
 
 def mako_template(text):
     """Build a Mako template.
@@ -592,16 +554,21 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
 
         model = self.table
         pool = pooler.get_pool(cr.dbname)
-        table_obj = pooler.pool.get(model)
+        table_obj = pool.get(model)
         objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
 
         content = ""
         for obj in objs:
-            obj = MakoParsable(obj) #, cr, uid, None, context)
-            fields = obj._table.fields_get(cr, uid, None, context)
-            content += tpl.render(fields=fields, obj=obj)
+            wrapped_obj = mako_tools.MakoParsable(obj) #, cr, uid, None, context)
+            content += tpl.render(object=wrapped_obj, **mako_tools.env)
 
-        xml = E.data(ET.fromstring(content))
+        try:
+            xml = ET.fromstring(content)
+        except:
+            exc = format_last_exception()
+            raise SyntaxError("Output doesn't seem to be valid XML.\n%s"
+                              "\nException Traceback:\n%s"
+                              % (content, exc))
 
         return (xml2string(xml), 'xml')
 
