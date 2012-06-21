@@ -500,7 +500,9 @@ def xml2string(content):
 
 class XmlParser(report_webkit.webkit_report.WebKitParser):
     """Custom class that dump data to XML reports
-       Code partially taken from report webkit. Thanks guys :)
+
+    Code partially taken from report webkit. Thanks guys :)
+
     """
 
     def __init__(self, name, table, rml=False, parser=False,
@@ -555,7 +557,8 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         model = self.table
         pool = pooler.get_pool(cr.dbname)
         table_obj = pool.get(model)
-        objs = table_obj.browse(cr, uid, ids, list_class=None, context=context, fields_process=None)
+        objs = table_obj.browse(cr, uid, ids, list_class=None,
+                                context=context, fields_process=None)
 
         content = ""
         for obj in objs:
@@ -578,10 +581,12 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         instead of PDF if report_type is 'xml'."""
 
         if context is None:
-            context={}
+            context = {}
 
         if report_xml.report_type != 'xml':
-            return super(XmlParser,self).create_single_pdf(cr, uid, ids, data, report_xml, context=context)
+            return super(XmlParser, self).create_single_pdf(cr, uid, ids,
+                                                           data, report_xml,
+                                                           context=context)
 
         return self.create_single_xml(cr, uid, ids, data, report_xml, context)
 
@@ -590,39 +595,39 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         """generate the XML"""
 
         if context is None:
-            context={}
+            context = {}
 
         if report_xml.xml_full_dump:
-            return self._create_full_dump_xml(cr, uid, ids, data, report_xml, context,
+            return self._create_full_dump_xml(cr, uid, ids, data,
+                                              report_xml, context,
                                               additional_data)
 
         return self._create_mako_xml(cr, uid, ids, data, report_xml, context)
 
     def create(self, cr, uid, ids, data, context=None):
         """We override the create function in order to handle generator
-           Code taken from report webkit. Thanks guys :) """
+
+        Code taken from report webkit. Thanks guys :)
+
+        """
 
         pool = pooler.get_pool(cr.dbname)
         ir_obj = pool.get('ir.actions.report.xml')
         report_xml_ids = ir_obj.search(cr, uid,
                 [('report_name', '=', self.name[7:])], context=context)
         if report_xml_ids:
-            report_xml = ir_obj.browse(
-                                        cr,
-                                        uid,
-                                        report_xml_ids[0],
-                                        context=context
-                                    )
+            report_xml = ir_obj.browse(cr, uid, report_xml_ids[0],
+                                       context=context)
             report_xml.report_rml = None
             report_xml.report_rml_content = None
             report_xml.report_sxw_content_data = None
-            report_rml.report_sxw_content = None
-            report_rml.report_sxw = None
+            report_xml.report_sxw_content = None
+            report_xml.report_sxw = None
         else:
             return super(XmlParser, self).create(cr, uid, ids, data, context)
-        if report_xml.report_type != 'xml' :
+        if report_xml.report_type != 'xml':
             return super(XmlParser, self).create(cr, uid, ids, data, context)
         result = self.create_source_pdf(cr, uid, ids, data, report_xml, context)
         if not result:
-            return (False,False)
+            return (False, False)
         return result

@@ -1,38 +1,191 @@
-"""Creates a Questionnable Wrapping Object to ease writing of mako templates
+"""Questionnable wrapping object and function to ease writing of mako templates
+
+Note that you can run the doctest with:
+
+    python -m doctest mako_tools.py
 
 """
 
+from mako.template import Template
+
 from babel.dates import format_date as babel_format_date
 from datetime import datetime, date
+import time
 
+## This global dictionary will be added to mako environment
 env = {}
 
 
 def register(f):
+    """Decorator helper to register function in the Mako environment"""
     env[f.__name__] = f
     return f
 
 
 @register
-def format_date(s, locale):
-    if isinstance(s._obj, basestring):
-        dt = datetime.strptime(s._obj, "%Y-%m-%d")
-    elif isinstance(s._obj, datetime) or isinstance(s._obj, date):
-        dt = s._obj
+def format_date(mp, locale):
+    """Format a MakoParsable object as a date in provided locale
+
+    This function is provided as a convenience shortcut for mako template
+    writers.
+
+    Usage
+    =====
+
+    Let's create two MakoParsable date:
+
+        >>> epoch_datetime = MakoParsable(datetime.utcfromtimestamp(0))
+        >>> epoch_string = MakoParsable("2000-10-10")
+
+    ``format_date`` should convert to the accurate human local representation
+    of these date:
+
+        >>> format_date(epoch_datetime, "fr")
+        u'1 janvier 1970'
+        >>> format_date(epoch_string, "fr")
+        u'10 octobre 2000'
+
+    Acceptance of both format is required for conveniency as OOOP object and
+    OpenERP object do not behave the same way when accessing datetime objects.
+
+    Please note that providing a non-string / date object will result by
+    returning a MakoParsable(None):
+
+        >>> format_date(MakoParsable(2), "fr")
+        None
+        >>> type(format_date(MakoParsable(2), "fr"))  # doctest: +ELLIPSIS
+        <class '...MakoParsable'>
+
+    Please note that other languages are supported:
+
+        >>> format_date(epoch_string, "en")
+        u'October 10, 2000'
+        >>> format_date(epoch_string, "de")
+        u'10. Oktober 2000'
+
+    """
+    if not isinstance(mp, MakoParsable):
+        raise TypeError("Argument %r is not a MakoParsable.")
+
+    raw = getattr(mp, "_obj")
+
+    if isinstance(raw, basestring):
+        dt = datetime.strptime(raw, "%Y-%m-%d")
+    elif isinstance(raw, datetime) or isinstance(raw, date):
+        dt = raw
     else:
         return MakoParsable(None)
-    return babel_format_date(dt,
-                             format="long",
-                             locale=locale)
+    return MakoParsable(babel_format_date(dt,
+                                          format="long",
+                                          locale=locale))
+
 
 @register
-def custom_format_date(s, format):
-    if not s._obj:
-        return s
-    return time.strftime(s._obj, format)
+def strftime(mp, fmt):
+    """Format a MakoParsable date as a date in time.strftime provided format
+
+    This function is provided as a convenience shortcut for mako template
+    writers.
+
+    Usage
+    =====
+
+    Let's create two MakoParsable date:
+
+        >>> epoch_datetime = MakoParsable(datetime.utcfromtimestamp(0))
+        >>> epoch_string = MakoParsable("2000-10-10")
+
+    ``format_date`` should convert to the accurate human local representation
+    of these date:
+
+        >>> format_date(epoch_datetime, "fr")
+        u'1 janvier 1970'
+        >>> format_date(epoch_string, "fr")
+        u'10 octobre 2000'
+
+    Acceptance of both format is required for conveniency as OOOP object and
+    OpenERP object do not behave the same way when accessing datetime objects.
+
+    Please note that other languages are supported:
+
+        >>> format_date(epoch_string, "en")
+        u'October 10, 2000'
+        >>> format_date(epoch_string, "de")
+        u'10. Oktober 2000'
+
+    """
+    if not isinstance(mp, MakoParsable):
+        raise TypeError("Argument %r is not a MakoParsable.")
+
+    raw = getattr(mp, "_obj")
+
+    if not raw:
+        return MakoParsable(None)
+    return MakoParsable(time.strftime(raw, fmt))
 
 
 class MakoParsable(object):
+    """Risky attempt to make a mako "user friendly" object.
+
+    This is a general python object wrapper. Any python object can be wrapped:
+
+        >>> two = MakoParsable(2)
+        >>> an_object = MakoParsable(object())
+        >>> a_list = MakoParsable([1, 2])
+        >>> a_dict = MakoParsable({'a': 2})
+        >>> a_string = MakoParsable("Hello World!")
+
+    Any wrapped object should behave as if it wasn't wrapped:
+
+        >>> two, an_object, a_list, a_dict, a_string  # doctest: +ELLIPSIS
+        (2, <object object at ...>, [1, 2], {'a': 2}, 'Hello World!')
+
+    For the exception of some behavior that would have casted exceptions, as
+    AttributeErrors, where the MakoParsable(None) value will be returned...
+
+        >>> two.foo
+        None
+        >>> type(two.foo)  # doctest: +ELLIPSIS
+        <class '...MakoParsable'>
+
+    These specifications will allow chaining attributes without having to check
+    for existence of subattribute:
+
+        >>> an_object.partner_id.user_id.name
+        None
+
+    And hopefully will reveal itself useful in mako templates more than it is
+    cumbersome to have this strange magic.
+
+    Note that callable can be wrapped:
+
+        >>> my_fun = MakoParsable(lambda *args, **kwargs: (args, kwargs))
+
+    And that the MakoParsable(None) can be called (and returns
+    MakoParsable(None)).
+
+        >>> MakoParsable(None)(1, 2, 3)
+        None
+        >>> type(MakoParsable(None)(1, 2, 3))  # doctest: +ELLIPSIS
+        <class '...MakoParsable'>
+
+    This is needed to complete the attribute defaulting coverage:
+
+        >>> a_string.split()
+        ['Hello', 'World!']
+        >>> type(a_string.split())  # doctest: +ELLIPSIS
+        <class '...MakoParsable'>
+
+    And on object that do not support this method will then default to
+    returning MakoParsable(None):
+
+        >>> two.split()
+        None
+
+    There's a lot missing to impersonate a real object, but this is sufficient
+    to test wether this is a really good idea or not.
+
+    """
 
     NULL = {}
 
@@ -47,7 +200,9 @@ class MakoParsable(object):
         if isinstance(val, basestring):
             val = val.strip()
         if callable(val):
-            return val
+            def w(*args, **kwargs):
+                return MakoParsable(val(*args, **kwargs))
+            return w
         return MakoParsable(val)
 
     def __call__(self, *args, **kwargs):
