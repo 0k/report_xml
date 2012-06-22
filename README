@@ -31,6 +31,9 @@ XML to a `graphane server`_.
 Installation
 ============
 
+Once the code downloaded, don't forget to run "./autogen.sh" which will
+generate the correct version number.
+
 This is an openerp module, working with OpenERP 6.0, 6.1 and greater. So please
 install as any other openerp module.
 
