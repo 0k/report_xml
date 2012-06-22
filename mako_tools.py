@@ -200,9 +200,12 @@ class MakoParsable(object):
         if isinstance(val, basestring):
             val = val.strip()
         if callable(val):
-            def w(*args, **kwargs):
-                return MakoParsable(val(*args, **kwargs))
-            return w
+            ## XXXvlab: __trunc__ will complain, and I'm not sure to what
+            ## extent we should persist converting all in MakoParsable.
+            #def w(*args, **kwargs):
+            #    return MakoParsable(val(*args, **kwargs))
+            #return w
+            return val
         return MakoParsable(val)
 
     def __call__(self, *args, **kwargs):
