@@ -251,3 +251,34 @@ class MakoParsable(object):
             return MakoParsable(None)
         return MakoParsable(res)
 
+
+def mako_template(text):
+    """Build a Mako template from provided string
+
+    This template uses UTF-8 encoding
+
+    """
+    return Template(text, input_encoding='utf-8', output_encoding='utf-8')
+
+
+def render(tpl, obj):
+    """Render mako template provided as string in tpl with object as 'object'
+
+    Usage
+    =====
+
+    Here is a quick sample:
+
+        >>> render('hello ${object}!', 'World')
+        'hello World!'
+
+    Please note that any registered function can be called:
+
+        >>> render('current date: ${format_date(object, "en")}!', '2010-10-10')
+        'current date: October 10, 2010!'
+
+    """
+
+    tpl_obj = mako_template(tpl)
+    wrapped_obj = MakoParsable(obj)
+    return tpl_obj.render(object=wrapped_obj, **env)
