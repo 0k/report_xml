@@ -21,24 +21,24 @@ Usage
 This module is intended to be plugged to other modules that would use this
 output to generate any kind of GED publishing.
 
-For instance, this module was used in conjunction with ``report_graphane`` to send
+For instance, this module was used in conjunction with `report_graphane`_ to send
 XML to a `graphane server`_.
 
-.. _report_graphaner: https://github.com/simplee/report_graphane
+.. _report_graphane: https://github.com/simplee/report_graphane
 .. _graphane server: http://www.callidoc.com
 
 
 Installation
 ============
 
-Once the code downloaded, don't forget to run "./autogen.sh" which will
+Once the code downloaded, don't forget to run ``./autogen.sh`` which will
 generate the correct version number.
 
 This is an openerp module, working with OpenERP 6.0, 6.1 and greater. So please
 install as any other openerp module.
 
 Once installed, you can create reports (Customization > Low Level Object >
-Actions > Reports) of ``Report Type`` "xml", which should give you a new "XML"
+Actions > Reports) of "Report Type" ``xml``, which should give you a new "XML"
 tab.
 
 
