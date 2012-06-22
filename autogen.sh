@@ -140,7 +140,9 @@ s/%%short-version%%/${short_version}/g"
 
     for p in $patterns; do
         for f in $UPDATE_FILES ChangeLog; do
-            sed -ri $p $f
+            if [ -e "$f" ]; then
+                sed -ri $p $f
+            fi
         done
     done
 
