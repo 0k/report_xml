@@ -3,7 +3,7 @@
     <record id="act_report_xml_view" model="ir.ui.view">
       <field name="name">ir.actions.report.xml.inherit</field>
       <field name="model">ir.actions.report.xml</field>
-      <field name="inherit_id" ref="report_xml.act_report_add_button_view"/>
+      <field name="inherit_id" ref="base.act_report_xml_view"/>
       <field name="type">form</field>
       <field name="arch" type="xml">
         <xpath expr="/form/notebook/page[@string='Security']" position="before" >

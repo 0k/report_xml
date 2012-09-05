@@ -11,7 +11,6 @@ The module structure and some code is inspired by the report_webkit module.
     "category": "Reports/Xml",
     "url": "http://www.simplee.fr",
     "data": [ "security/ir.model.access.csv",
-              "ir_report_add_button_view.xml",
               "ir_report_view.xml",
     ],
     "installable" : True,
