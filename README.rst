@@ -21,8 +21,8 @@ Usage
 This module is intended to be plugged to other modules that would use this
 output to generate any kind of GED publishing.
 
-For instance, this module was used in conjunction with `report_graphane`_ to send
-XML to a `graphane server`_.
+For instance, this module was used in conjunction with `report_graphane`_ to
+send XML to a `graphane server`_.
 
 .. _report_graphane: https://github.com/simplee/report_graphane
 .. _graphane server: http://www.callidoc.com
