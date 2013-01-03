@@ -7,7 +7,7 @@
       <field name="type">form</field>
       <field name="arch" type="xml">
         <xpath expr="/form/notebook/page[@string='Security']" position="before" >
-          <page string="Xml" attrs="{'invisible':[('report_type','!=','xml')]}">
+          <page string="Xml" attrs="{'invisible':[('report_type','not in',['xml','graphane'])]}">
             <group colspan="2" col="2">
               <separator colspan="4" string="Xml Dump General Options" />
               <field name="xml_debug" />
