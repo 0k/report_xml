@@ -254,6 +254,9 @@ class MakoParsable(object):
             return MakoParsable(None)
         return MakoParsable(res)
 
+    def __nonzero__(self):
+        return bool(self._obj)
+
 
 def mako_template(text):
     """Build a Mako template from provided string
