@@ -83,8 +83,11 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
                                 context=context, fields_process=None)
 
         content = ""
-        for obj in objs:
-            content += mako_tools.render(report_xml.xml_template, obj)
+        if report_xml.multi:
+            content += mako_tools.render(report_xml.xml_template, objects=objs)
+        else:
+            for obj in objs:
+                content += mako_tools.render(report_xml.xml_template, **{'object': obj})
 
         try:
             xml = string2xml(content)

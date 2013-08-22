@@ -267,7 +267,7 @@ def mako_template(text):
     return Template(text, input_encoding='utf-8', output_encoding='utf-8')
 
 
-def render(tpl, obj):
+def render(tpl, **kwargs):
     """Render mako template provided as string in tpl with object as 'object'
 
     Usage
@@ -286,5 +286,7 @@ def render(tpl, obj):
     """
 
     tpl_obj = mako_template(tpl)
-    wrapped_obj = MakoParsable(obj)
-    return tpl_obj.render(object=wrapped_obj, **env)
+    wrapped_kwargs = dict((k, MakoParsable(v)) for k, v in kwargs.iteritems())
+    environ = env.copy()
+    environ.update(wrapped_kwargs)
+    return tpl_obj.render(**environ)
