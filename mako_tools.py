@@ -12,6 +12,7 @@ from babel.dates import format_date as babel_format_date
 from datetime import datetime, date
 import time
 
+
 ## This global dictionary will be added to mako environment
 env = {}
 
@@ -290,3 +291,7 @@ def render(tpl, **kwargs):
     environ = env.copy()
     environ.update(wrapped_kwargs)
     return tpl_obj.render(**environ)
+
+
+
+env['MakoParsable'] = MakoParsable
