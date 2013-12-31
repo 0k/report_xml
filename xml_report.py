@@ -2,18 +2,13 @@
 
 import logging
 
-import netsvc
-import pooler
+from openerp.tools.safe_eval import safe_eval as eval
+from openerp.tools.translate import _
+from openerp.addons import report_webkit
+from openerp.report.report_sxw import *
+from openerp import pooler
 
-from tools.safe_eval import safe_eval as eval
-from tools.translate import _
-
-import report_webkit
-
-from report.report_sxw import *
-
-
-from . import mako_tools
+from .mako_tools import render
 from oe2xml import Obj2Xml
 from .common import format_last_exception, xml2string, string2xml
 
@@ -26,12 +21,12 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
     """
 
     def __init__(self, name, table, rml=False, parser=False,
-                 header=True, store=False):
+                 header=True, store=False, register=True):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.parser_instance = False
         self.localcontext = {}
-        super(XmlParser, self).__init__(name, table, rml,
-                                        parser, header, store)
+        super(XmlParser, self).__init__(
+            name, table, rml, parser, header, store, register)
 
     def generate_pdf(self, _comm_path, _report_xml, _header, _footer, _html_list):
         ## should return the raw data of a pdf
@@ -84,10 +79,10 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
 
         content = ""
         if report_xml.multi:
-            content += mako_tools.render(report_xml.xml_template, objects=objs)
+            content += render(report_xml.xml_template, objects=objs)
         else:
             for obj in objs:
-                content += mako_tools.render(report_xml.xml_template, **{'object': obj})
+                content += render(report_xml.xml_template, **{'object': obj})
 
         try:
             xml = string2xml(content)

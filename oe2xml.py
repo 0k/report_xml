@@ -6,12 +6,12 @@ This code needs to be cleaned and simplified.
 """
 
 import logging
-import pooler
+from openerp import pooler
 
 from lxml import etree as ET
 from lxml.builder import E
 
-from osv.orm import except_orm
+from openerp.osv.orm import except_orm
 from .common import format_last_exception
 
 
