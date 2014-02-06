@@ -242,11 +242,13 @@ class MakoParsable(object):
         return repr(self._obj)
 
     def __getitem__(self, value):
-        try:
-            res = self._obj.__getitem__(value)
-        except (TypeError, AttributeError):
-            return MakoParsable(None)
-        return MakoParsable(res)
+        if self._obj != []:
+            try:
+                res = self._obj.__getitem__(value)
+            except (TypeError, AttributeError):
+                return MakoParsable(None)
+            return MakoParsable(res)
+        return MakoParsable(None)
 
     def __mul__(self, value):
         try:
