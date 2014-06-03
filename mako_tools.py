@@ -6,6 +6,8 @@ Note that you can run the doctest with:
 
 """
 
+import sys
+
 from mako.template import Template
 
 ## This global dictionary will be added to mako environment
@@ -194,6 +196,14 @@ def wrap(elt):
 
 def unwrap(elt):
     return getattr(elt, "_obj") if isinstance(elt, MakoParsable) else elt
+
+
+def mako_env():
+    frame = sys._getframe()
+    while frame.f_code != render.func_code:
+        frame = frame.f_back
+    return frame.f_locals["environ"].copy()
+
 
 env['MakoParsable'] = MakoParsable
 env['wrap'] = unwrap
