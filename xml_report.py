@@ -77,12 +77,15 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         objs = table_obj.browse(cr, uid, ids, list_class=None,
                                 context=context, fields_process=None)
 
+        base_env = {"_uid": uid, "_cr": cr, "_pool": pool, "_context": context}
         content = ""
         if report_xml.multi:
-            content += render(report_xml.xml_template, objects=objs)
+            content += render(report_xml.xml_template, objects=objs,
+                              **base_env)
         else:
             for obj in objs:
-                content += render(report_xml.xml_template, **{'object': obj})
+                content += render(report_xml.xml_template, object=obj,
+                                  **base_env)
 
         try:
             xml = string2xml(content)

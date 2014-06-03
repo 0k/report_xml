@@ -184,7 +184,8 @@ def render(tpl, **kwargs):
     """
 
     tpl_obj = mako_template(tpl)
-    wrapped_kwargs = dict((k, MakoParsable(v)) for k, v in kwargs.iteritems())
+    wrapped_kwargs = dict((k, MakoParsable(v) if not k.startswith("_") else v)
+                          for k, v in kwargs.iteritems())
     environ = env.copy()
     environ.update(wrapped_kwargs)
     return tpl_obj.render(**environ)
