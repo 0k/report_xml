@@ -141,7 +141,7 @@ class MakoParsable(object):
             except (TypeError, AttributeError):
                 return MakoParsable(None)
             return MakoParsable(res)
-        return MakoParsable(None)
+        return MakoParsable([])
 
     def __mul__(self, value):
         try:
