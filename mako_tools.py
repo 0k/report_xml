@@ -236,13 +236,13 @@ def render(tpl, **kwargs):
 
     Here is a quick sample:
 
-        >>> render('hello ${object}!', 'World')
+        >>> render('hello ${object}!', object='World')
         'hello World!'
 
     Please note that any registered function can be called:
 
-        >>> render('current date: ${format_date(object, "en")}!', '2010-10-10')
-        'current date: October 10, 2010!'
+        >>> render('current date: ${unwrap(object)}!', object='2010-10-10')
+        'current date: 2010-10-10!'
 
     """
 
