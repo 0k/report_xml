@@ -188,4 +188,13 @@ def render(tpl, **kwargs):
     return tpl_obj.render(**environ)
 
 
+def wrap(elt):
+    return MakoParsable(elt) if not isinstance(elt, MakoParsable) else elt
+
+
+def unwrap(elt):
+    return getattr(elt, "_obj") if isinstance(elt, MakoParsable) else elt
+
 env['MakoParsable'] = MakoParsable
+env['wrap'] = unwrap
+env['unwrap'] = unwrap
