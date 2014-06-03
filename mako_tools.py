@@ -69,8 +69,9 @@ class MakoParsable(object):
 
         >>> a_string.split()
         ['Hello', 'World!']
-        >>> type(a_string.split())  # doctest: +ELLIPSIS
-        <class '...MakoParsable'>
+
+        # >>> type(a_string.split())  # doctest: +ELLIPSIS
+        # <class '...MakoParsable'>
 
     And on object that do not support this method will then default to
     returning MakoParsable(None):
@@ -80,6 +81,12 @@ class MakoParsable(object):
 
     There's a lot missing to impersonate a real object, but this is sufficient
     to test wether this is a really good idea or not.
+
+        >>> MakoParsable(2) < 3
+        True
+
+        >>> sorted([MakoParsable(2), 1, MakoParsable(0)])
+        [0, 1, 2]
 
     """
 
@@ -147,13 +154,69 @@ class MakoParsable(object):
 
     def __mul__(self, value):
         try:
-            res = self._obj.__mul__(value)
+            res = self._obj * value
         except (TypeError, AttributeError):
             return MakoParsable(None)
         return MakoParsable(res)
 
     def __nonzero__(self):
         return bool(self._obj)
+
+    def __lt__(self, value):
+        try:
+            res = self._obj < value
+        except (TypeError, AttributeError):
+            return MakoParsable(None)
+        return MakoParsable(res)
+
+    def __add__(self, value):
+        try:
+            res = self._obj + value
+        except (TypeError, AttributeError):
+            return MakoParsable(None)
+        return MakoParsable(res)
+
+    def __le__(self, value):
+        try:
+            res = self._obj <= value
+        except (TypeError, AttributeError):
+            return MakoParsable(None)
+        return MakoParsable(res)
+
+    def __cmp__(self, value):
+        try:
+            res = cmp(self._obj, value)
+        except (TypeError, AttributeError):
+            return MakoParsable(None)
+        return MakoParsable(res)
+
+    def __eq__(self, value):
+        try:
+            res = self._obj == value
+        except (TypeError, AttributeError):
+            return MakoParsable(None)
+        return MakoParsable(res)
+
+    def __ne__(self, value):
+        try:
+            res = self._obj != value
+        except (TypeError, AttributeError):
+            return MakoParsable(None)
+        return MakoParsable(res)
+
+    def __gt__(self, value):
+        try:
+            res = self._obj > value
+        except (TypeError, AttributeError):
+            return MakoParsable(None)
+        return MakoParsable(res)
+
+    def __ge__(self, value):
+        try:
+            res = self._obj >= value
+        except (TypeError, AttributeError):
+            return MakoParsable(None)
+        return MakoParsable(res)
 
 
 def mako_template(text):
