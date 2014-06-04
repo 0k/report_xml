@@ -88,6 +88,9 @@ class MakoParsable(object):
         >>> sorted([MakoParsable(2), 1, MakoParsable(0)])
         [0, 1, 2]
 
+        >>> MakoParsable(True) in {MakoParsable(True): 1}
+        True
+
     """
 
     NULL = {}
@@ -217,6 +220,9 @@ class MakoParsable(object):
         except (TypeError, AttributeError):
             return MakoParsable(None)
         return MakoParsable(res)
+
+    def __hash__(self):
+        return hash((978237561354, self._obj))
 
 
 def mako_template(text):
