@@ -1,21 +1,33 @@
 # -*- coding: utf-8 -*-
 
 {
-    "name" : "Xml Report Engine",
-    "description" : """This module adds a new Report Engine to output XML.
+    "name": "Xml Report Engine",
+    "description": """This module adds a new Report Engine to output XML.
 The module structure and some code is inspired by the report_webkit module.
 """,
-    "version" : "%%short-version%%",
-    "depends" : [
+    "version": "%%short-version%%",
+    "depends": [
         "base",
         "report_webkit",
+        "web",
     ],
-    "author" : "Valentin LAB -- Simplee",
+    "author": "Valentin LAB -- Simplee",
     "category": "Reports/Xml",
     "url": "http://www.simplee.fr",
-    "data": [ "security/ir.model.access.csv",
-              "ir_report_view.xml",
+    "data": [
+        "security/ir.model.access.csv",
+        "ir_report_view.xml",
     ],
-    "installable" : True,
-    "active" : False,
+    "js": [
+        "static/lib/js/splitter/splitter.js",
+        "static/src/js/base.js",
+        ],
+    "qweb": [
+        "static/src/xml/report_xml_template.xml",
+        ],
+    "css": [
+        "static/src/css/*.css",
+        ],
+    "installable": True,
+    "active": False,
 }

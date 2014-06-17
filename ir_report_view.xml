@@ -22,7 +22,7 @@
             <group colspan="4"
                    attrs="{'invisible':[('xml_full_dump','==',True)]}">
               <separator colspan="4" string="Mako XML Template" />
-              <field colspan="4" name="xml_template" nolabel="1" />
+              <field colspan="4" name="xml_template" nolabel="1" widget="report_xml_template" />
             </group>
           </page>
         </xpath>
