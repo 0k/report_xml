@@ -527,8 +527,10 @@ openerp.report_xml = function (instance) {
                             "</div>").hide();
                 this.$preview.append($el);
                 $el.find("button.get-report").click(function() {
+                    var active_ids = $(this).data("active_ids");
+                    var active_model = $(this).data("active_model");
                     self.view.save().done(function () {
-                        self.do_print_record(value.active_ids, value.active_model);
+                        self.do_print_record(active_ids, active_model);
                     });
                 });
                 if (navigator.userAgent.toLowerCase().indexOf('firefox') > -1) {
@@ -542,6 +544,10 @@ openerp.report_xml = function (instance) {
                 $el.slideDown(150);
 
             }
+
+            $el.find("button.get-report")
+                .data("active_ids", value.active_ids)
+                .data("active_model", value.active_model);
 
             var $content = $el.find(".content");
             var $indicator = $el.find(".indicator");
