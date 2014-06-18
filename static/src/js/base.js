@@ -477,13 +477,13 @@ openerp.report_xml = function (instance) {
                             var error = _.extend({}, options, {
                                 data: _.extend({}, options.data, {
                                     message: options.data.arguments[0]})});
-                            new instance.web.Dialog(this, {
+                            var dialog = new instance.web.Dialog(this, {
                                 size: 'large',
                                 title: "OpenERP Error",
                                 buttons: [{
                                     text: _t("Ok"),
                                     click: function() {
-                                        this.parents('.modal').modal('hide');
+                                        dialog.close();
                                     }}],
                             }, $('<div>' + QWeb.render('ReportError',
                                                        {error: error}) +
