@@ -454,7 +454,8 @@ openerp.report_xml = function (instance) {
                     active_model: active_model
                 },
                 report_type: this.view.fields.report_type.get_value(),
-                report_name: this.view.fields.report_name.get_value()
+                report_name: this.view.fields.report_name.get_value(),
+                name: this.view.fields.name.get_value()
             };
 
             instance.web.blockUI();
