@@ -107,17 +107,22 @@
 
 /* Edit pane */
 
-.openerp .oe_form .report_xml_edit {
+.openerp .oe_form .report_xml_edit.ace_editor {
   min-width: 440px;
+}
+
+.openerp .oe_form .report_xml_edit .report_xml_edit.ace_editor {
+  width: 50%;
 }
 
 .openerp .oe_form .report_xml_edit {
    margin: 0px;
 }
 
-.openerp .oe_form .oe_report_xml_split textarea {
+
+.openerp .oe_form .oe_report_xml_split textarea.field_text {
   position: relative;
-  width: 50%;
+  width: 100%;
   font-size: 10px;
   font-family: monospace;
   height: 522px;

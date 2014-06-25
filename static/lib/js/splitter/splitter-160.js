@@ -181,6 +181,7 @@
             B.css(opts.origin, pos + bar._DA)
                 .css(opts.split, splitter._DA - bar._DA - pos)
                 .css(opts.fixed, splitter._DF);
+            splitter.trigger("move");
         }
 
         function dimSum(jq /*, dims ... */) {

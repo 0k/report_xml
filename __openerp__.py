@@ -10,6 +10,7 @@ The module structure and some code is inspired by the report_webkit module.
         "base",
         "report_webkit",
         "web",
+        "web_ace_editor",
     ],
     "author": "Valentin LAB -- Simplee",
     "category": "Reports/Xml",

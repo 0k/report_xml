@@ -17,7 +17,8 @@
 
       <div t-attf-class="oe_report_xml_split oe_form_field oe_form_field_text oe_form_field_report_xml #{widget.get('effective_readonly')?'report_xml_read_only':'report_xml_edit'}" t-att-style="widget.node.attrs.style">
 
-        <div class="report_xml_edit">
+        <div class="report_xml_edit ace_editor">
+          <div class="report_xml_edit_ace_editor" />
 
           <textarea rows="6"
                     t-att-name="widget.name"

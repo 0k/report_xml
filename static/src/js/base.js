@@ -195,13 +195,6 @@ openerp.report_xml = function (instance) {
             // Events
 
             var self = this;
-            this.$txt.scroll(function() {
-                self.sync_scroll_position();
-            });
-
-            this.$txt.bind('change keyup', function() {
-                self._gen_preview_html();
-            });
 
             this.$select_objects_title.click(function() {
                 self.select_widget_toggle();
@@ -213,10 +206,29 @@ openerp.report_xml = function (instance) {
             //         resizeHandle: false,
             //     }));
 
+            this.$editor = $('<div />');
+            this.$editor.appendTo(this.$el.find('div.report_xml_edit_ace_editor'));
+            this.$txt.remove();
+
+            this.editor = ace.edit(this.$editor[0]);
+            this.editor.setTheme("ace/theme/" + this.theme);
+            this.editor.getSession().setMode("ace/mode/" + this.mode);
+            this.editor.setValue();
+            this.$editor.height("520px");
+            this.$editor.data('editor', this.editor);
+
             this.view.fields.multi.on("changed_value", this, this.on_field_multi_changed);
             this.view.fields.model.on("changed_value", this, this.on_field_model_changed);
 
             this.init_splitter();
+
+            this.$el.find("div.report_xml_edit_ace_editor div").on("scroll", function() {
+                self.sync_scroll_position();
+            });
+
+            this.editor.on('change', function() {
+                self._gen_preview_html();
+            });
 
             this.old_value = null; // will trigger a redraw
             this.old_source = null; // will trigger saving of value if any.
@@ -256,6 +268,9 @@ openerp.report_xml = function (instance) {
                     dockSpeed: 200,
                     resizeToWidth: true,
                 });
+                self.$split.on('move resize', function() {
+                    self.editor.resize();
+                });
                 self.$split.trigger('resize');
             });
             return def;
@@ -281,6 +296,8 @@ openerp.report_xml = function (instance) {
             console.log("MY DESTROY CONTENT");
             if (this.$split && this.$split.data('splitter'))
                 this.$split.splitter('destroy');
+            if (this.$editor && this.editor)
+                this.editor.destroy();
             this.destroy_select();
             this.view.fields.multi.off("changed_value", this, this.on_field_multi_changed);
             this.view.fields.model.off("changed_value", this, this.on_field_model_changed);
@@ -418,9 +435,9 @@ openerp.report_xml = function (instance) {
             return def;
         },
         _get_raw_value: function() {
-            if (this.$txt === false)
+            if (_.isUndefined(this.editor))
                 return '';
-            return this.$txt.val();
+            return this.editor.getValue();
         },
         _set_rendering_status: function(data, $el) {
             var out;
@@ -683,13 +700,16 @@ openerp.report_xml = function (instance) {
 
         sync_scroll_position: function () {
 
-            var editorScrollRange = (this.$txt[0].scrollHeight - this.$txt.innerHeight());
+            var editorScrollRange = (
+                (this.editor.getSession().getScreenLength() *
+                 this.editor.renderer.lineHeight) -
+                    this.$editor.innerHeight());
             var previewScrollRange = (this.$preview_pane[0].scrollHeight -
                                       this.$preview_pane.innerHeight());
 
             // Find how far along the editor is (0 means it is scrolled to the top, 1
             // means it is at the bottom).
-            var scrollFactor = this.$txt.scrollTop() / editorScrollRange;
+            var scrollFactor = this.editor.getSession().getScrollTop() / editorScrollRange;
 
             // Set the scroll position of the preview pane to match.  jQuery will
             // gracefully handle out-of-bounds values.
@@ -709,13 +729,15 @@ openerp.report_xml = function (instance) {
             var show_value = this.format_value(this.get('value'), '');
             var readonly = this.get("effective_readonly");
 
-            this.$txt.attr("readonly", readonly);
-            this.$txt.val(show_value);
-
             if (readonly) {
+                this.$txt.attr("readonly", readonly);
+                this.$txt.val(show_value);
                 this.destroy_content();
                 return;
             }
+            this.editor.setValue(show_value);
+            this.editor.clearSelection();
+            this.editor.moveCursorTo(0,0);
 
             if (this.dataset) this.dataset.set_ids(this.object_ids);
             this.select_objects_reinit();
