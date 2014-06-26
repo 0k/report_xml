@@ -7,21 +7,6 @@
 }
 
 
-/* rst2html_readonly view only mode */
-
-.openerp .oe_form div.oe_form_field_rst2html_readonly.oe_view_only {
-  border: 0px solid #ddd;
-  box-shadow: 5px 5px 4px 1px #999;
-  margin: 0em;
-}
-
-.openerp div.oe_form_field_rst2html_readonly.oe_form_field_markitup_preview.oe_view_only {
-  overflow: auto;
-  margin: 0;
-  box-shadow: none;
-}
-
-
 /* Select Preview object */
 
 .openerp .report_xml_select_objects {

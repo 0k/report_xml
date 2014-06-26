@@ -52,12 +52,6 @@
     </div>
   </t>
 
-  <t t-name="FieldTextRst2HtmlReadOnly">
-    <div class="oe_form_field_html oe_form_field_rst2html_readonly"
-         t-att-style="widget.node.attrs.style">
-    </div>
-  </t>
-
   <t t-name="ReportError">
     <table cellspacing="0" cellpadding="0" border="0" class="oe_dialog_warning">
       <tr>

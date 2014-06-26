@@ -24,27 +24,6 @@ openerp.report_xml = function (instance) {
     }
 
 
-    instance.report_xml.FieldTextReportTemplateReadOnly = instance.web.form.FieldText.extend({
-        template: 'FieldTextReportTemplateReadOnly',
-
-        render_value: function() {
-            var self = this;
-            debugger;  // XXXvlab: display the content of the template and don't compute anything
-            if (! this.get("effective_readonly")) {
-                return this._super.apply(this, arguments);
-            } else {
-                // XXXvlab: put a loading symbol
-                this.rpc('/report_xml/rst2html', {
-                    'source': this.get('value'),
-                    'theme': 'nature'
-                }).then(function(html_content) {
-                    self._set_preview_html(html_content);
-                });
-            }
-        }
-    });
-
-
     /**
      * @class
      * @extends instance.web.ListView
