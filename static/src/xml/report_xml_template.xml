@@ -5,50 +5,43 @@
 
   <t t-name="FieldReportXMLTemplate">
 
-    <div>
-        <t t-if="!widget.get('effective_readonly')">
-          <div class="oe_edit_only">
-            <div class="report_xml_select_objects">
-              <h4 class='select_preview_title open'>Select Preview Objects</h4>
-              <div class="report_xml_select_objects_area" />
-            </div>
+    <div t-att-class="widget.widget_class">
+
+      <textarea rows="6"
+                t-if="widget.get('effective_readonly')"
+                t-att-name="widget.name"
+                class="field_text report_xml_read_only"
+                readonly="true"
+                t-att-tabindex="widget.node.attrs.tabindex"
+                t-att-autofocus="widget.node.attrs.autofocus"
+                placeholder=""
+                t-att-maxlength="widget.field.size"
+                ></textarea>
+
+      <t t-if="!widget.get('effective_readonly')">
+        <div class="oe_edit_only">
+          <div class="report_xml_select_objects">
+            <h4 class='select_preview_title open'>Select Preview Objects</h4>
+            <div class="report_xml_select_objects_area" />
           </div>
-        </t>
-
-      <div t-attf-class="oe_report_xml_split oe_form_field oe_form_field_text oe_form_field_report_xml #{widget.get('effective_readonly')?'report_xml_read_only':'report_xml_edit'}" t-att-style="widget.node.attrs.style">
-
-        <div class="report_xml_edit ace_editor">
-          <div class="report_xml_edit_ace_editor" />
-
-          <textarea rows="6"
-                    t-att-name="widget.name"
-                    class="field_text"
-                    t-att-readonly="widget.get('effective_readonly')"
-                    t-att-tabindex="widget.node.attrs.tabindex"
-                    t-att-autofocus="widget.node.attrs.autofocus"
-                    t-att-placeholder="! widget.get('effective_readonly') ? widget.node.attrs.placeholder : ''"
-                    t-att-maxlength="widget.field.size"
-                    ></textarea><img class="oe_field_translate oe_input_icon"
-                    t-if="widget.field.translate and !widget.get('effective_readonly')"
-                    t-att-src='_s + "/web/static/src/img/icons/terp-translate.png"'
-                    width="16"
-                    height="16"
-                    border="0"
-                    />
         </div>
 
-        <t t-if="!widget.get('effective_readonly')">
+        <div class="oe_report_xml_split oe_form_field oe_form_field_text oe_form_field_report_xml report_xml_edit"
+             t-att-style="widget.node.attrs.style">
+
+          <div class="report_xml_edit ace_editor">
+            <div class="report_xml_edit_ace_editor" />
+          </div>
 
           <div class="oe_preview_pane oe_edit_only">
-
             <div class="oe_form_field_html oe_form_field_rst2html_readonly oe_form_field_preview">
             </div>
             <div class="oe_form_field_html no_preview_message">
             </div>
           </div>
+        </div>
+      </t>
 
-        </t>
-      </div>
     </div>
   </t>
 

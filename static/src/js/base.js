@@ -156,6 +156,8 @@ openerp.report_xml = function (instance) {
 
             if (this.get('effective_readonly')) return; // Nothing more to do in read-only.
 
+            this.$txt.remove();
+
             // These elements are rendered (or used) only on edit mode
 
             this.$split = this.$el.find('div.oe_report_xml_split');
@@ -167,8 +169,6 @@ openerp.report_xml = function (instance) {
             this.$preview = this.$el.find('div.oe_form_field_preview');
             this.$no_preview_message = this.$el.find('div.no_preview_message');
 
-            this.$txt.attr('readonly', false);
-
             // Events
 
             var self = this;
@@ -177,15 +177,8 @@ openerp.report_xml = function (instance) {
                 self.select_widget_toggle();
             });
 
-
-            // this.$txt.reportxml(
-            //     $.extend(mySettings, {
-            //         resizeHandle: false,
-            //     }));
-
             this.$editor = $('<div />');
             this.$editor.appendTo(this.$el.find('div.report_xml_edit_ace_editor'));
-            this.$txt.remove();
 
             this.editor = ace.edit(this.$editor[0]);
             this.editor.setTheme("ace/theme/" + this.theme);
