@@ -30,9 +30,7 @@
              t-att-style="widget.node.attrs.style">
 
           <div class="report_xml_edit ace_editor">
-            <div class="report_xml_edit_ace_editor">
-              <div />
-            </div>
+            <div class="report_xml_edit_ace_editor" />
           </div>
 
           <div class="oe_preview_pane oe_edit_only">
