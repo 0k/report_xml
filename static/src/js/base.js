@@ -1,5 +1,4 @@
-/*global: openerp,window,QWeb,_,mySettings,$,navigator */
-
+/*global: openerp,window,QWeb,_,mySettings,$,navigator,ace */
 
 openerp.report_xml = function (instance) {
 
@@ -7,11 +6,16 @@ openerp.report_xml = function (instance) {
     _t  = instance.web._t,
     _lt = instance.web._lt;
 
+
     instance.web.form.widgets.add('report_xml_template', 'instance.report_xml.FieldTextReportXMLTemplate');
+
+
+    /* General Functions */
 
     function escapeRegExp(string) {
         return string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
     }
+
 
     String.prototype.replaceAll = function (find, replace) {
         return this.replace(new RegExp(escapeRegExp(find), 'g'), replace);
@@ -24,7 +28,9 @@ openerp.report_xml = function (instance) {
     }
 
 
-    /**
+    /** Many2ManyVirtualListView
+     * display and manage a Many2Many in memory
+     *
      * @class
      * @extends instance.web.ListView
      */
@@ -92,8 +98,15 @@ openerp.report_xml = function (instance) {
     });
 
 
+    /** FieldTextReportXMLTemplate
+     *
+     * Display readonly simple textarea and read-write rich dev editor and an
+     * information window on the left.
+     *
+     * @class
+     * @extends instance.web.ListView
+     */
     instance.report_xml.FieldTextReportXMLTemplate = instance.web.form.AbstractField.extend(instance.web.form.ReinitializeFieldMixin, {
-
         template: 'FieldReportXMLTemplate',
         display_name: _lt('ReportXmlTemplate'),
         widget_class: 'oe_form_field_report_xml_template',
@@ -109,7 +122,6 @@ openerp.report_xml = function (instance) {
             this.object_ids = [];
             this.dataset = null;                // M2M memory dataset
             this.objects_select_widget = null;  // M2M list view
-
 
         },
         on_field_multi_changed: function () {
