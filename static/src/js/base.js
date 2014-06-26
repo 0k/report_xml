@@ -69,39 +69,25 @@ openerp.report_xml = function (instance) {
             pop.on('write_completed', self, self.reload_content);
         },
         do_button_action: function(name, id, callback) {
-            var self = this;
-            new instance.web.Dialog(this, {
-                size: 'large',
-                title: "OpenERP Error",
-                buttons: [{
-                    text: _t("Ok"),
-                    click: function() {
-                        this.parents('.modal').modal('hide');
-                    }}],
-            }, $('<div>Action not implemented yet. ' +
-                 'Please contact your administrator.</div>')).open();
-            // var _sup = _.bind(this._super, this);
-            // if (! this.m2m_field.options.reload_on_button) {
-            //     return _sup(name, id, callback);
-            // } else {
-            //     return this.m2m_field.view.save().then(function() {
-            //         return _sup(name, id, function() {
-            //             self.m2m_field.view.reload();
-            //         });
-            //     });
-            // }
+            new instance.web.Dialog(
+                this, {
+                    size: 'large',
+                    title: "OpenERP Error",
+                    buttons: [{
+                        text: _t("Ok"),
+                        click: function() {
+                            this.parents('.modal').modal('hide');
+                        }}] },
+                // XXXvlab: Translation ?
+                $('<div>Action not implemented yet. ' +
+                  'Please contact your administrator.</div>')).open();
         },
         is_action_enabled: function () { return true; },
     });
     instance.report_xml.Many2ManyList = instance.web.form.AddAnItemList.extend({
         _add_row_class: 'oe_form_field_many2many_list_row_add',
         is_readonly: function () {
-            try {
-                res = this.view.getParent().get('effective_readonly');
-            } catch(e) {
-                // XXXvlab: should probably catch why we get here
-            }
-            return res;
+            return this.view.getParent().get('effective_readonly');
         }
     });
 
