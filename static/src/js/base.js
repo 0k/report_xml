@@ -160,7 +160,9 @@ openerp.report_xml = function (instance) {
 
             // These elements are rendered (or used) only on edit mode
 
+            this.$editor = this.$el.find('div.report_xml_edit.ace_editor');
             this.$split = this.$el.find('div.oe_report_xml_split');
+
             this.$select_objects = this.$el.find('div.report_xml_select_objects');
             this.$select_objects_title = this.$el.find('h4.select_preview_title');
             this.$select_objects_area = this.$el.find('div.report_xml_select_objects_area');
@@ -177,27 +179,12 @@ openerp.report_xml = function (instance) {
                 self.select_widget_toggle();
             });
 
-            this.$editor = this.$el.find('div.report_xml_edit.ace_editor');
-
-            this.editor = ace.edit(this.$editor[0]);
-            this.editor.setTheme("ace/theme/" + this.theme);
-            this.editor.getSession().setMode("ace/mode/" + this.mode);
-            this.editor.setValue();
-            this.$editor.height("520px");
-            this.$editor.data('editor', this.editor);
+            this.init_editor(this.$editor);
 
             this.view.fields.multi.on("changed_value", this, this.on_field_multi_changed);
             this.view.fields.model.on("changed_value", this, this.on_field_model_changed);
 
-            this.init_splitter();
-
-            this.editor.getSession().addEventListener("changeScrollTop", function() {
-                self.sync_scroll_position();
-            });
-
-            this.editor.on('change', function() {
-                self._gen_preview_html();
-            });
+            this.init_splitter(this.$split);
 
             this.old_value = null; // will trigger a redraw
             this.old_source = null; // will trigger saving of value if any.
@@ -207,7 +194,26 @@ openerp.report_xml = function (instance) {
                 this, this.on_field_xml_full_dump_changed);
 
         },
-        init_splitter: function () {
+        init_editor: function($el) {
+            var self = this;
+            var editor = ace.edit($el[0]);
+            var session = editor.getSession();
+            editor.setTheme("ace/theme/chrome");
+            session.setMode("ace/mode/text");
+            editor.setValue();
+            $el.height("520px");
+            $el.data('editor', editor);
+
+            session.addEventListener("changeScrollTop", function() {
+                self.sync_scroll_position();
+            });
+
+            editor.on('change', function() {
+                self._gen_preview_html();
+            });
+
+        },
+        init_splitter: function ($el) {
             // In forms, we could be hidden in a notebook. Thus we couldn't
             // render correctly the splitter so we try to detect when we are
             // not visible to wait for when we will be visible.
@@ -220,27 +226,27 @@ openerp.report_xml = function (instance) {
 
             console.log("INIT NEW SPLITTER");
 
-            if (this.$split.is(':visible'))  {
+            if ($el.is(':visible'))  {
                 def.resolve();
             } else {
-                this.$split.parents(".ui-tabs").on('tabsactivate', function() {
-                    if (self.$split.is(':visible')) {
+                $el.parents(".ui-tabs").on('tabsactivate', function() {
+                    if ($el.is(':visible')) {
                         def.resolve();
                     }
                 });
             }
             $.when(def).then(function() {
-                self.$split.splitter({
+                $el.splitter({
                     type: "v",
                     dock: "rightDock",
                     minRight: 250,
                     dockSpeed: 200,
                     resizeToWidth: true,
                 });
-                self.$split.on('move resize', function() {
-                    self.editor.resize();
+                $el.on('move resize', function() {
+                    self.$editor.data('editor').resize();
                 });
-                self.$split.trigger('resize');
+                $el.trigger('resize');
             });
             return def;
         },
@@ -265,8 +271,8 @@ openerp.report_xml = function (instance) {
             console.log("MY DESTROY CONTENT");
             if (this.$split && this.$split.data('splitter'))
                 this.$split.splitter('destroy');
-            if (this.$editor && this.editor)
-                this.editor.destroy();
+            if (this.$editor && this.$editor.data('editor'))
+                this.$editor.data('editor').destroy();
             this.destroy_select();
             this.view.fields.multi.off("changed_value", this, this.on_field_multi_changed);
             this.view.fields.model.off("changed_value", this, this.on_field_model_changed);
@@ -404,9 +410,9 @@ openerp.report_xml = function (instance) {
             return def;
         },
         _get_raw_value: function() {
-            if (_.isUndefined(this.editor))
+            if (!this.$editor || !this.$editor.data('editor'))
                 return '';
-            return this.editor.getValue();
+            return this.$editor.data('editor').getValue();
         },
         _set_rendering_status: function(data, $el) {
             var out;
@@ -587,6 +593,9 @@ openerp.report_xml = function (instance) {
         },
         _gen_preview_html: function() {
 
+            if (this.$preview_pane.css('display') == "none")
+                return;
+
             var self = this;
             var preview = this.objects_select_widget;
             var active_ids = preview ? preview.dataset.ids : [];
@@ -614,9 +623,6 @@ openerp.report_xml = function (instance) {
             this.$preview.fadeIn(400, function() {
                 self.$no_preview_message.hide();
             });
-
-            if (this.$preview_pane.css('display') == "none")
-                return;
 
             var multi = this.view.fields.multi.get_value();
             // XXXvlab: put a loading symbol in the preview window and remove the
@@ -668,23 +674,23 @@ openerp.report_xml = function (instance) {
         },
 
         sync_scroll_position: function () {
+            var editor = this.$editor.data('editor');
+            var session = editor.session;
 
             var editorScrollRange = (
-                (this.editor.getSession().getScreenLength() *
-                 this.editor.renderer.lineHeight) -
+                (session.getScreenLength() * editor.renderer.lineHeight) -
                     this.$editor.innerHeight());
             var previewScrollRange = (this.$preview_pane[0].scrollHeight -
                                       this.$preview_pane.innerHeight());
 
             // Find how far along the editor is (0 means it is scrolled to the top, 1
             // means it is at the bottom).
-            var scrollFactor = this.editor.getSession().getScrollTop() / editorScrollRange;
+            var scrollFactor = session.getScrollTop() / editorScrollRange;
 
             // Set the scroll position of the preview pane to match.  jQuery will
             // gracefully handle out-of-bounds values.
             this.$preview_pane.scrollTop(scrollFactor * previewScrollRange);
         },
-
         render_value: function() {
             if (this.view.fields.xml_full_dump.get_value()) return;
 
@@ -704,16 +710,18 @@ openerp.report_xml = function (instance) {
                 this.destroy_content();
                 return;
             }
-            this.editor.setValue(show_value);
-            this.editor.clearSelection();
-            this.editor.moveCursorTo(0,0);
+            var editor = this.$editor.data('editor');
+
+            editor.setValue(show_value);
+            editor.clearSelection();
+            editor.moveCursorTo(0,0);
 
             if (this.dataset) this.dataset.set_ids(this.object_ids);
+
             this.select_objects_reinit();
             this._gen_preview_html();
             this.$split.trigger('resize');
         },
-
         is_syntax_valid: function() {
             if (!this.get("effective_readonly") && this._get_raw_value().length > 0) {
                 try {
@@ -725,7 +733,6 @@ openerp.report_xml = function (instance) {
             }
             return true;
         },
-
         parse_value: function(val, def) {
             return instance.web.parse_value(val, this, def);
         },
