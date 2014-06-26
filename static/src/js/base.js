@@ -177,8 +177,7 @@ openerp.report_xml = function (instance) {
                 self.select_widget_toggle();
             });
 
-            this.$editor = $('<div />');
-            this.$editor.appendTo(this.$el.find('div.report_xml_edit_ace_editor'));
+            this.$editor = this.$el.find('div.report_xml_edit_ace_editor div');
 
             this.editor = ace.edit(this.$editor[0]);
             this.editor.setTheme("ace/theme/" + this.theme);
