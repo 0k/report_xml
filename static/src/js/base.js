@@ -177,7 +177,7 @@ openerp.report_xml = function (instance) {
                 self.select_widget_toggle();
             });
 
-            this.$editor = this.$el.find('div.report_xml_edit_ace_editor');
+            this.$editor = this.$el.find('div.report_xml_edit.ace_editor');
 
             this.editor = ace.edit(this.$editor[0]);
             this.editor.setTheme("ace/theme/" + this.theme);
@@ -191,7 +191,7 @@ openerp.report_xml = function (instance) {
 
             this.init_splitter();
 
-            this.$el.find("div.report_xml_edit_ace_editor div").on("scroll", function() {
+            this.editor.getSession().addEventListener("changeScrollTop", function() {
                 self.sync_scroll_position();
             });
 

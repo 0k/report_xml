@@ -26,18 +26,14 @@
           </div>
         </div>
 
-        <div class="oe_report_xml_split oe_form_field oe_form_field_text oe_form_field_report_xml report_xml_edit"
+        <div class="oe_report_xml_split oe_form_field_report_xml"
              t-att-style="widget.node.attrs.style">
 
-          <div class="report_xml_edit ace_editor">
-            <div class="report_xml_edit_ace_editor" />
-          </div>
+          <div class="report_xml_edit ace_editor" />
 
           <div class="oe_preview_pane oe_edit_only">
-            <div class="oe_form_field_html oe_form_field_rst2html_readonly oe_form_field_preview">
-            </div>
-            <div class="oe_form_field_html no_preview_message">
-            </div>
+            <div class="oe_form_field_preview" />
+            <div class="no_preview_message" />
           </div>
         </div>
       </t>
