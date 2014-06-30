@@ -509,15 +509,7 @@ openerp.report_xml = function (instance) {
             var $el = this.$preview.find("div.check#check-" + id);
             if ($el.length === 0) {
                 var title = id === 0 ? "Multi-Object Report" : "Single Object Report";
-                $el = $("<div class='check' id='check-" + id  +"'>" +
-                        "<button type='button' class='btn btn-default btn-lg get-report'>" +
-                        "<span class='glyphicon glyphicon-download'></span>" +
-                        "</button>" +
-                        "<div class='indicator'></div>" +
-                        "<div class='message'></div>" +
-                        "<h3>" + title + "</h3>" +
-                        "<div class='content' style='display: none;'></div>" +
-                            "</div>").hide();
+                $el = $(QWeb.render('ReportBox', {id: id, title: title})).hide();
                 this.$preview.append($el);
                 $el.find("button.get-report").click(function() {
                     var active_ids = $(this).data("active_ids");

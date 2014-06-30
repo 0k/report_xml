@@ -62,4 +62,16 @@
     </table>
   </t>
 
+  <t t-name="ReportBox">
+    <div class='check' t-attf-id='check-#{id}'>
+      <button type='button' class='btn btn-default btn-lg get-report'>
+        <span class='glyphicon glyphicon-download'></span>
+      </button>
+      <div class='indicator'></div>
+      <div class='message'></div>
+      <h3><t t-esc='title' /></h3>
+      <div class='content' style='display: none;'></div>
+    </div>
+  </t>
+
 </templates>
