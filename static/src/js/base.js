@@ -89,6 +89,32 @@ openerp.report_xml = function (instance) {
                   'Please contact your administrator.</div>')).open();
         },
         is_action_enabled: function () { return true; },
+        /**
+         * Handles the signal to delete lines from the records list
+         *
+         * @param {Array} ids the ids of the records to delete
+         */
+        do_delete: function (ids) {
+            var self = this;
+            return $.when(this.dataset.unlink(ids)).done(function () {
+                _(ids).each(function (id) {
+                    self.records.remove(self.records.get(id));
+                });
+                if (self.records.length === 0 && self.dataset.size() > 0) {
+                    //Trigger previous manually to navigate to previous page,
+                    //If all records are deleted on current page.
+                    self.$pager.find('ul li:first a').trigger('click');
+                } else if (self.dataset.size() == self.limit()) {
+                    //Reload listview to update current page with next page records
+                    //because pager going to be hidden if dataset.size == limit
+                    self.reload();
+                } else {
+                    self.configure_pager(self.dataset);
+                }
+                self.compute_aggregates();
+            });
+        },
+
     });
     instance.report_xml.Many2ManyList = instance.web.form.AddAnItemList.extend({
         _add_row_class: 'oe_form_field_many2many_list_row_add',
