@@ -9,7 +9,7 @@ from .xml_report import XmlParser
 
 class ReportXML(osv.osv):
 
-    _report_type = 'xml'
+
     _report_parser = XmlParser
 
     _name = 'ir.actions.report.xml'
@@ -63,7 +63,7 @@ class ReportXML(osv.osv):
             if not isinstance(new_report, self._report_parser):
                 new_report = None
         else:
-            cr.execute("SELECT * FROM ir_act_report_xml WHERE report_name=%s and report_type=%s", (name, self._report_type))
+            cr.execute("SELECT * FROM ir_act_report_xml WHERE report_name=%s", (name, ))
             r = cr.dictfetchone()
             if r:
                 if r['parser']:
