@@ -74,4 +74,33 @@
     </div>
   </t>
 
+  <t t-name="ReportDisplayResult">
+    <div class='report-display-result'>
+      <div t-if='message || more' class='message-box'>
+        <span class='message'><t t-esc='message' /></span>
+        <div t-if="more" class='more'><t t-esc='more' /></div>
+      </div>
+      <t t-if="results.length !== 0">
+        <ul class="nav nav-tabs" role="tablist">
+          <t t-foreach='results' t-as='result'>
+            <li t-att-class="result_index === highlight_index ? 'active' : ''"
+                t-att-data-index="result_index">
+              <a>
+                <span class="glyphicon glyphicon-ok-sign"></span>
+                 <t t-esc='result.title' />
+              </a>
+            </li>
+          </t>
+        </ul>
+        <t t-foreach='results' t-as='result'>
+          <div t-attf-class="tab-content tab-index-#{result_index}">
+            <pre t-attf-class='code sunlight-highlight-#{result.type}'
+                 t-att-data-index='result_index'
+                 ><t t-esc="'\n' + result.content" /></pre>
+          </div>
+        </t>
+      </t>
+    </div>
+  </t>
+
 </templates>

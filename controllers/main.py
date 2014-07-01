@@ -32,14 +32,18 @@ class Home(Controller):
         objs = registry.get(active_model).browse(request.cr, s.uid, active_ids, s.context)
         base_env = {"_uid": s.uid, "_cr": request.cr, "_pool": pooler.get_pool(s.db),
                     "_context": s.context}
+
+        results = []
         try:
             output = render(source, objects=objs, object=objs[0], **base_env)
         except exceptions.SyntaxException, e:
             return {'status': 'ko',
                     'error': 'Mako Syntax Error',
                     'line': e.lineno,
-                    'pos': e.pos,
-                    'message': e.message}
+                    'col': e.pos,
+                    'results': results,
+                    'message': e.message,
+                    'more': None}
         except Exception, e:
             tb = exceptions.RichTraceback()
             output = ""
@@ -61,8 +65,15 @@ class Home(Controller):
             return {'status': 'ko',
                     'error': 'Mako Runtime Error',
                     'line': tb.lineno,
-                    'message': output}
+                    'results': results,
+                    'message': e.message,
+                    'more': output}
 
+        ## XXXvlab: translation please !
+        results.append({'type': 'text',
+                        'content': output,
+                        'title': 'Mako render',
+                        })
         ## Should move this to another method. Ideally the first part should
         ## be in a report_mako module, and this second in a report_xml module
 
@@ -81,17 +92,25 @@ class Home(Controller):
                                      % (line, col, msg))
             return {'status': 'ko',
                     'error': 'XML Syntax',
+                    'line': line,
+                    'col': col,
                     'source': output,
+                    'results': results,
                     'errors': errors,
                     'message': "\n".join(message_lines)}
         except Exception, e:
             exc = format_last_exception()
             return {'status': 'ko',
                     'error': 'Unrecognised XML Issue',
-                    # 'line': tb.lineno,
+                    'line': -1,
                     'message': exc}
         else:
             output = xml2string(output)
+        ## XXXvlab: translation please !
+        results.append({'type': 'xml',
+                        'content': output,
+                        'title': 'XML',
+                        })
 
         return {'status': 'ok',
-                'output': output}
+                'results': results}

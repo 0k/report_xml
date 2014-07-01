@@ -114,7 +114,7 @@
   font-family: sans-serif;
   padding-right: 30px;
 }
-.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .message {
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check > div.message {
   float: right;
   height: 25px;
   line-height: 25px;
@@ -157,7 +157,7 @@
   margin-left: 3px;
   border-radius: 15px;
 }
-.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview div.check {
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check {
   padding: 0px;
   margin-right: 2px;
   margin-left: 2px;
@@ -172,6 +172,7 @@
 .openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content {
   clear: both;
   background: none;
+  .tab-content-background-color: #f8f8f8;
 }
 .openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content pre {
   padding: 0.2em;
@@ -180,6 +181,50 @@
 }
 .openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content pre.warning {
   font-weight: bold;
+}
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content .report-display-result .message-box {
+  margin-left: 1em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  border-left: 3px solid red;
+  padding-left: 1em;
+  border-radius: 4px;
+  white-space: pre-line;
+}
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content .report-display-result .message-box .message {
+  color: #aa0000;
+  font-size: 1.25em;
+}
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content .report-display-result .message-box .more {
+  white-space: pre;
+  font-family: monospace;
+}
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content .report-display-result ul.nav.nav-tabs {
+  padding-left: 35px;
+}
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content .report-display-result ul.nav.nav-tabs > li > a {
+  padding: 3px 4px 2px 5px;
+}
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content .report-display-result ul.nav.nav-tabs > li > a .glyphicon.glyphicon-exclamation-sign {
+  color: red;
+}
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content .report-display-result ul.nav.nav-tabs > li > a .glyphicon.glyphicon-ok-sign {
+  color: green;
+}
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content .report-display-result .sunlight-code-container pre.code {
+  background: none;
+  padding: 0;
+  word-wrap: normal;
+}
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content .report-display-result .sunlight-container .sunlight-line-highlight-overlay .sunlight-line-highlight-active {
+  background-color: #ff8888;
+}
+.openerp .oe_form .oe_form_field_report_xml_template .oe_preview_pane .oe_form_field_preview .check .content .report-display-result .sunlight-container pre.sunlight-line-number-margin {
+  border: none;
+  border-right: none !important;
+  padding-left: 1em !important;
+  padding-right: 1em !important;
+  line-height: 12px !important;
 }
 
 /* Select Preview object */

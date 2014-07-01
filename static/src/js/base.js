@@ -9,6 +9,9 @@ openerp.report_xml = function (instance) {
 
     instance.web.form.widgets.add('report_xml_template', 'instance.report_xml.FieldTextReportXMLTemplate');
 
+    var defaultSunLightOptions = {
+        lineNumbers: true
+    };
 
     /* General Functions */
 
@@ -27,6 +30,15 @@ openerp.report_xml = function (instance) {
             .replaceAll('>', '&gt;');
     }
 
+    String.prototype.repeat = function(count) {
+        if (count < 1) return '';
+        var result = '', pattern = this.valueOf();
+        while (count > 1) {
+            if (count & 1) result += pattern;
+            count >>= 1, pattern += pattern;
+        }
+        return result + pattern;
+    };
 
     /** Many2ManyVirtualListView
      * display and manage a Many2Many in memory
@@ -441,27 +453,91 @@ openerp.report_xml = function (instance) {
             return this.$editor.data('editor').getValue();
         },
         _set_rendering_status: function(data, $el) {
-            var out;
-            var $pre = $el.find("pre");
-            if ($pre.length === 0) {
-                $pre = $("<pre/>");
-                $el.append($pre);
-            }
+            if (!this.$preview_pane.is(':visible'))
+                return;
+
+            var highlight_index = (data.results && data.results.length !== 0) ?
+                data.results.length - 1 : -1;
+            var editor = this.$editor.data('editor');
+            var session = editor.getSession();
+
+            session.clearAnnotations();
+
+            $el.html(QWeb.render('ReportDisplayResult', {
+                message: data.message,
+                more: data.more,
+                results: data.results,
+                highlight_index: highlight_index,
+            }));
+
+            $el.find("pre.code").each(function () {
+                var $me = $(this);
+                var $parent = $me.parent();
+                var index = $me.data('index');
+                var options = $.extend(defaultSunLightOptions, {
+                    lineHighlight: (index === highlight_index && data.line ?
+                        [parseInt(data.line, 10)] : [])
+                });
+                $me.sunlight(options);
+
+                if (index === highlight_index && data.col) {
+                    var maxCharWidth = $parent
+                        .find("pre.sunlight-line-number-margin a:last")
+                        .text().length;
+                    var marginLeft = (maxCharWidth / 2) + 2.3; // From CSS: 1 + 1 + 0.3
+                    $parent.find("div.sunlight-line-highlight-overlay " +
+                                 "div.sunlight-line-highlight-active")
+                        .html("<span class='column-pointer' style='margin-left: " +
+                              marginLeft + "em'>" +
+                              "X".repeat(data.col - 1) + "<i class='fa fa-caret-up'></i>" +
+                              "</span>");
+                }
+            });
+            $el.find("ul.nav-tabs li a").click(function () {
+                var $li = $(this).parent();
+                var index = $li.data('index');
+
+                $li.siblings().removeClass("active");
+                $li.addClass("active");
+                $el.find("div.tab-content").each(function () {
+                    var $me = $(this);
+                    if ($me.hasClass("tab-index-" + index)) {
+                        $me.show();
+                    } else {
+                        $me.hide();
+                    }
+                });
+            });
+            $el.find("div.tab-content").hide();
+            $el.find("div.tab-content.tab-index-" + highlight_index).show();
+            $el.find("div.sunlight-code-container").attr("style", "");
+
             if (data.status === 'ok') {
-                $pre.addClass("ok");
-                $pre.removeClass("warning");
-                out = data.output;
+                $el.addClass("ok");
+                $el.removeClass("warning");
             } else {
-                $pre.addClass("warning");
-                $pre.removeClass("ok");
-                if (data.error === 'XML Syntax') {
-                    out = data.message + "\n\n-- Source:\n\n" + data.source;
-                } else {
-                    out = data.message;
+                $el.addClass("warning");
+                $el.removeClass("ok");
+
+                // Do we have info to highlight some code ?
+                if (data.line && data.results) {
+                    if (highlight_index === -1) {
+                        // highlight in source code
+                        session.setAnnotations([{
+                            row: parseInt(data.line, 10) - 1,
+                            column: data.col || null,
+                            text: data.message,
+                            type: "error" // also warning and information
+                        }]);
+                    } else {
+                        // Intermediate output errors
+                        $el.find("ul.nav.nav-tabs > li[data-index=" + highlight_index +
+                                 "] span.glyphicon")
+                            .removeClass("glyphicon-ok-sign")
+                            .addClass("glyphicon-exclamation-sign");
+                    }
                 }
             }
-
-            $pre.html(escape_html_chars(out));
         },
         do_print_record: function(active_ids, active_model) {
             var self = this;

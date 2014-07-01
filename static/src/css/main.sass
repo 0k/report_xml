@@ -100,7 +100,7 @@
           padding: 5px 0
           font-family: sans-serif
           padding-right: 30px
-        .message
+        > div.message
           float: right
           height: 25px
           line-height: 25px
@@ -137,7 +137,7 @@
           padding: 2px
           margin-left: 3px
           border-radius: 15px
-      div.check
+      .check
         padding: 0px
         margin-right: 2px
         margin-left: 2px
@@ -145,19 +145,61 @@
         margin-bottom: 5px
         border: 1px solid #ddd
         background: white
-      .check
         h3.open
           border-bottom: 1px dotted gray
         .content
           clear: both
           background: none
-          &.loading
           pre
             padding: 0.2em
             background: #f8f8f8
             margin: 0px
             &.warning
               font-weight: bold
+          .tab-content:
+            background-color: #f8f8f8
+          .report-display-result
+            .message-box
+              margin-left: 1em
+              margin-top: 0.5em
+              margin-bottom: 0.5em
+              border-left: 3px solid red
+              padding-left: 1em
+              border-radius: 4px
+              white-space: pre-line
+              .message
+                color: #A00
+                font-size: 1.25em
+              .more
+                white-space: pre
+                font-family: monospace
+                padding-top: 1em
+                font-size: 12px
+
+            ul.nav.nav-tabs
+              padding-left: 35px
+              > li > a
+                padding: 3px 4px 2px 5px
+                .glyphicon
+                  &.glyphicon-exclamation-sign
+                    color: red
+                  &.glyphicon-ok-sign
+                    color: green
+            .sunlight-code-container
+              pre.code
+                background: none
+                padding: 0
+                word-wrap: normal
+            .sunlight-container
+              .sunlight-line-highlight-overlay .sunlight-line-highlight-active
+                background-color: #f88
+              pre.sunlight-line-number-margin
+                border: none
+                border-right: none !important
+                padding-left: 1em !important
+                padding-right: 1em !important
+
+                line-height: 12px !important
 
 /* Select Preview object
 
