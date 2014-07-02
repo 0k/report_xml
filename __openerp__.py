@@ -20,6 +20,10 @@ The module structure and some code is inspired by the report_webkit module.
         "ir_report_view.xml",
     ],
     "js": [
+        "static/lib/js/sunlightjs/sunlight.js",
+        "static/lib/js/sunlightjs/lang/sunlight.xml.js",
+        "static/lib/js/sunlightjs/plugins/sunlight-plugin.linenumbers.js",
+        "static/lib/js/sunlightjs/jquery.sunlight.js",
         "static/lib/js/splitter/splitter.js",
         "static/src/js/base.js",
         ],
