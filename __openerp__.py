@@ -16,22 +16,12 @@ The module structure and some code is inspired by the report_webkit module.
     "category": "Reports/Xml",
     "url": "http://www.simplee.fr",
     "data": [
+	"view.xml",
         "security/ir.model.access.csv",
         "ir_report_view.xml",
     ],
-    "js": [
-        "static/lib/js/sunlightjs/sunlight.js",
-        "static/lib/js/sunlightjs/lang/sunlight.xml.js",
-        "static/lib/js/sunlightjs/plugins/sunlight-plugin.linenumbers.js",
-        "static/lib/js/sunlightjs/jquery.sunlight.js",
-        "static/lib/js/splitter/splitter.js",
-        "static/src/js/base.js",
-        ],
     "qweb": [
         "static/src/xml/report_xml_template.xml",
-        ],
-    "css": [
-        "static/src/css/*.css",
         ],
     "installable": True,
     "active": False,

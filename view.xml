@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- vim:fdn=3:
+-->
+<openerp>
+    <data>
+        <template id="assets_backend" name="report_xml assets" inherit_id="web.assets_backend">
+            <xpath expr="." position="inside">
+                <script type="text/javascript" src="/report_xml/static/lib/js/sunlightjs/sunlight.js"></script>
+                <script type="text/javascript" src="/report_xml/static/lib/js/sunlightjs/lang/sunlight.xml.js"></script>
+                <script type="text/javascript" src="/report_xml/static/lib/js/sunlightjs/plugins/sunlight-plugin.linenumbers.js"></script>
+                <script type="text/javascript" src="/report_xml/static/lib/js/sunlightjs/jquery.sunlight.js"></script>
+                <script type="text/javascript" src="/report_xml/static/lib/js/splitter/splitter.js"></script>
+                <script type="text/javascript" src="/report_xml/static/src/js/base.js"></script>
+                <link rel="stylesheet" href="/report_xml/static/src/css/main.css"/>
+	    </xpath>
+        </template>
+    </data>
+</openerp>

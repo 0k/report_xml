@@ -41,8 +41,8 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         model = self.table
         pool = pooler.get_pool(cr.dbname)
         table_obj = pool.get(model)
-        objs = table_obj.browse(cr, uid, ids, list_class=None,
-                                context=context, fields_process=None)
+        objs = table_obj.browse(cr, uid, ids,
+                                context=context)
         toXml = Obj2Xml(cr=cr, uid=uid, context=context,
                         remove_models=["ir.ui.menu", "res.groups",
                                        "res.currency.rate", "ir.model.access"])
@@ -74,8 +74,8 @@ class XmlParser(report_webkit.webkit_report.WebKitParser):
         model = self.table
         pool = pooler.get_pool(cr.dbname)
         table_obj = pool.get(model)
-        objs = table_obj.browse(cr, uid, ids, list_class=None,
-                                context=context, fields_process=None)
+        objs = table_obj.browse(cr, uid, ids,
+                                context=context)
 
         base_env = {"_uid": uid, "_cr": cr, "_pool": pool, "_context": context}
         content = ""
